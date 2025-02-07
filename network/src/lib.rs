@@ -1,10 +1,9 @@
+/*
+mod func;
+pub use func;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+      A
+      |
+thats how to export
+*/
 
-    #[test]
-    fn it_works() {
-        
-    }
-}
