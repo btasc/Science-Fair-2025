@@ -1,14 +1,9 @@
+use innovation::NeuronType;
+
 pub struct Connector {
     pub from: i32,
     pub to: i32,
-    pub weight: i32,
-    pub innovation_id: i32,
-}
-
-pub enum NeuronType {
-    Input,
-    Output,
-    Hidden,
+    pub weight: f64,
 }
 
 pub struct Neuron {
@@ -16,6 +11,7 @@ pub struct Neuron {
     pub kind: NeuronType,
     pub from_arr: Vec<i32>,
     pub to_arr: Vec<i32>,
+    pub value: f64,
 }
 
-pub type genome_type = (Vec<i32>, Vec<f64>, Vec<bool>);
+pub type GenomeType = (Vec<usize>, Vec<f64>, Vec<bool>);
