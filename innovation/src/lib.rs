@@ -11,3 +11,48 @@ pub struct InnovationTable {
     pub innovations: Vec<Innovation>,
     pub innovation_map: HashMap<(i32, i32, i32), i32>, // (from, to, neuron) -> id. You can then get the innovation from the innovations vec
 }
+
+impl InnovationTable {
+    pub fn new() -> InnovationTable {
+        InnovationTable {
+            innovations: Vec::new(),
+            innovation_map: HashMap::new(),
+        }
+    }
+
+    pub fn add_innovation(&mut self, from: i32, to: i32, neuron: i32) {
+
+        #[cfg(debug_assertions)]
+        {
+            if neuron < -1 {
+                panic!("Neuron id must be -1 or greater");
+            }
+
+            match self.get_innovation(from, to, neuron) {
+                Some(_) => panic!("Innovation already exists"),
+                None => (),
+            }
+        }
+
+        self.innovations.push(
+            Innovation {
+                from,
+                to,
+                id: self.innovations.len() as i32,
+                neuron,
+            }
+        );
+
+        self.innovation_map.insert(
+            (from, to, neuron),
+            self.innovations.len() as i32
+        );
+    }
+
+    pub fn get_innovation(&self, from: i32, to: i32, neuron: i32) -> Option<&i32> {
+        match self.innovation_map.get(&(from, to, neuron)) {
+            Some(id) => Some(id),
+            None => None,
+        }
+    }
+}

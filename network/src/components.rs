@@ -17,3 +17,5 @@ pub struct Neuron {
     pub from_arr: Vec<i32>,
     pub to_arr: Vec<i32>,
 }
+
+pub type genome_type = (Vec<i32>, Vec<f64>, Vec<bool>);
