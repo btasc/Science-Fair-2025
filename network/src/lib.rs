@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 
 type Layers = Vec<Vec<Vec<usize>>>;
 pub struct NeuralNetwork {
-    neurons: Vec<Neuron>,
+    neurons: HashMap<usize, Neuron>,
     connectors: Vec<Connector>,
     connector_map: HashMap<(usize, usize), usize>,
     layers: Layers,
@@ -16,7 +16,7 @@ pub struct NeuralNetwork {
 impl NeuralNetwork {
     fn new() -> NeuralNetwork {
         NeuralNetwork {
-            neurons: Vec::new(),
+            neurons: HashMap::new(),
             connectors: Vec::new(),
             connector_map: HashMap::new(),
             layers: Vec::new(),
@@ -58,11 +58,35 @@ impl NeuralNetwork {
                 id: neuron_id,
                 from_arr: Vec::new(),
                 to_arr: Vec::new(),
-                kind: innovation_table.get_levels(neuron_id),
+                kind: innovation_table.get_level(neuron_id),
                 value: 0.0,
             };
 
             network.add_neuron(neuron);
+        }
+
+        // Assign the froms and tos to the neurons, so iterate through connectors and add them to the neurons
+        /*
+            [] <- Tos
+            || <- Connector
+            [] <- Froms
+
+
+            so-
+            [] <- neuron 2
+            || <- connector 1
+            [] <- neuron 1
+
+            would be-
+            neuron 1: tos = [connector 1]
+            neuron 2: froms = [connector 1]
+
+            tos = connectors that go to this neuron
+            froms = connectors that go from this neuron
+         */
+        for i in 0..network.connectors.len() {
+            network.neurons.get_mut(&network.connectors[i].from).unwrap().to_arr.push(i);
+            network.neurons.get_mut(&network.connectors[i].to).unwrap().from_arr.push(i);
         }
 
         // Now we get the layers
@@ -81,7 +105,6 @@ impl NeuralNetwork {
          */
 
         let mut layers: Layers = Vec::new();
-
     }
 
     // ! Eats connector
@@ -92,6 +115,6 @@ impl NeuralNetwork {
 
     // ! Eats neuron
     fn add_neuron(&mut self, neuron: Neuron) {
-        self.neurons.push(neuron);
+        self.neurons.insert(neuron.id, neuron);
     }
 }

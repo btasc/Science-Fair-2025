@@ -6,6 +6,7 @@ pub struct Connector {
     pub weight: f64,
 }
 
+#[derive(Debug)]
 pub struct Neuron {
     pub id: usize,
     pub kind: NeuronType,
