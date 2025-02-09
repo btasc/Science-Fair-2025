@@ -5,11 +5,12 @@ use innovation::*;
 
 use std::collections::{HashMap, HashSet};
 
+type Layers = Vec<Vec<Vec<usize>>>;
 pub struct NeuralNetwork {
     neurons: Vec<Neuron>,
     connectors: Vec<Connector>,
-    connector_map: HashMap<(i32, i32), i32>,
-    layers: Vec<Vec<Vec<i32>>>,
+    connector_map: HashMap<(usize, usize), usize>,
+    layers: Layers,
 }
 
 impl NeuralNetwork {
@@ -24,7 +25,7 @@ impl NeuralNetwork {
 
     pub fn init(genome: GenomeType, innovation_table: &InnovationTable) {
         let mut network = NeuralNetwork::new();
-        let mut neurons: Vec<i32> = Vec::new();
+        let mut neurons: Vec<usize> = Vec::new();
 
         for i in 0..genome.0.len() {
 
@@ -63,11 +64,29 @@ impl NeuralNetwork {
 
             network.add_neuron(neuron);
         }
+
+        // Now we get the layers
+        /*
+            layers = 
+            [ List of "parts" of the network
+                [ List of sublayers
+                    [],
+                    [],
+                    [],
+                ]
+
+                [...],
+                [...],
+            ]
+         */
+
+        let mut layers: Layers = Vec::new();
+
     }
 
     // ! Eats connector
     fn add_connector(&mut self, connector: Connector) {
-        self.connector_map.insert((connector.from, connector.to), self.connectors.len() as i32 - 1);
+        self.connector_map.insert((connector.from, connector.to), self.connectors.len());
         self.connectors.push(connector);
     }
 
