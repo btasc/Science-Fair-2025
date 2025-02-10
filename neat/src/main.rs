@@ -9,4 +9,6 @@ fn main() {
     innovation_table.set_levels(vec![1], vec![2]);
 
     NeuralNetwork::init(genome, &innovation_table);
+
+    println!("hi");
 }

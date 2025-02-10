@@ -13,7 +13,6 @@ pub struct InnovationTable {
     pub neuron_levels: (Vec<usize>, Vec<usize>),
 }
 
-#[derive(Debug)]
 pub enum NeuronType {
     Input,
     Output,
