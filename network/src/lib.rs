@@ -96,52 +96,63 @@ impl NeuralNetwork {
         for i in 0..network.connectors.len() {
             network.neurons[*network.neuron_map.get(&network.connectors[i].from).unwrap()].to_arr.push(i);
             network.neurons[*network.neuron_map.get(&network.connectors[i].to).unwrap()].from_arr.push(i);
-
         }
-
+        
+        #[cfg(debug_assertions)]
+        {
+            for neuron in &network.neurons {
+                if innovation_table.neuron_levels.1.contains(&neuron.id) {
+                    assert_eq!(neuron.from_arr.len(), 0, "Input neurons should not have any connectors going from them");
+                }
+            }
+        }
+        
         // Now we get the layers
         /*
             layers = 
             [ List of "parts" of the network
-                [ List of sublayers
-                    [],
-                    [],
-                    [],
-                ]
-
-                [...],
-                [...],
+            [ List of sublayers
+            [],
+            [],
+            [],
             ]
-         */
+            
+            [...],
+            [...],
+            ]
+        */
+            
+        let mut outer_queue: Vec<usize> = Vec::new()
 
-        let mut layers: Layers = vec![Vec::new()];
-        let mut queue: Vec<usize> = innovation_table.neuron_levels.0.clone();
+        for queue in outer_queue {
+            let mut layers: Vec<Vec<usize>> = Vec::new();
+            
+            while queue.len() > 0 {
+                let mut temp_queue: Vec<usize> = Vec::new();
+                
+                for queue_neuron_id in &queue {
+                    let queue_neuron_to_arr = network.neurons[*network.neuron_map.get(queue_neuron_id).unwrap()].to_arr.clone();
 
-        while queue.len() > 0 {
-            let mut temp_queue: Vec<usize> = Vec::new();
+                    for connector_id in queue_neuron_to_arr {
+                        let connector_to_id = network.connectors[connector_id].to;
 
-            for queue_neuron_id in &queue {
-                let queue_neuron_to_arr = network.neurons[*network.neuron_map.get(queue_neuron_id).unwrap()].to_arr.clone();
-
-                for connector_id in queue_neuron_to_arr {
-                    let connector_to_id = network.connectors[connector_id].to;
-
-                    temp_queue.push(connector_to_id);
-                    network.neurons[*network.neuron_map.get(&connector_to_id).unwrap()].calls += 1;
+                        temp_queue.push(connector_to_id);
+                        network.neurons[*network.neuron_map.get(&connector_to_id).unwrap()].calls += 1;
+                    }
                 }
-            }
 
-            // temp queue should now have all neurons that connect to queue, and all those neurons should have their calls incremented
-            // we can now check if all the neurons in temp have been called the same amount of times as they have froms
-            layers[0].push(queue.clone());
-            queue = Vec::new();
+                // temp queue should now have all neurons that connect to queue, and all those neurons should have their calls incremented
+                // we can now check if all the neurons in temp have been called the same amount of times as they have froms
+                layers[0].push(queue.clone());
+                queue = Vec::new();
 
-            for neuron_id in temp_queue.clone() {
-                let calls = network.neurons[*network.neuron_map.get(&neuron_id).unwrap()].calls;
-                let froms = network.neurons[*network.neuron_map.get(&neuron_id).unwrap()].from_arr.len();
+                for neuron_id in temp_queue.clone() {
+                    let calls = network.neurons[*network.neuron_map.get(&neuron_id).unwrap()].calls;
+                    let froms = network.neurons[*network.neuron_map.get(&neuron_id).unwrap()].from_arr.len();
 
-                if calls == froms {
-                    queue.push(neuron_id);
+                    if calls == froms {
+                        queue.push(neuron_id);
+                    }
                 }
             }
         }
