@@ -6,6 +6,7 @@ use innovation::*;
 use std::collections::{HashMap, HashSet};
 
 type Layers = Vec<Vec<Vec<usize>>>;
+
 pub struct NeuralNetwork {
     neurons: Vec<Neuron>,
     neuron_map: HashMap<usize, usize>,
@@ -25,7 +26,7 @@ impl NeuralNetwork {
         }
     }
 
-    pub fn init(genome: GenomeType, innovation_table: &InnovationTable) {
+    pub fn init(genome: GenomeType, innovation_table: &InnovationTable) -> NeuralNetwork {
         let mut network = NeuralNetwork::new();
         let mut neurons: Vec<usize> = Vec::new();
 
@@ -101,7 +102,7 @@ impl NeuralNetwork {
         #[cfg(debug_assertions)]
         {
             for neuron in &network.neurons {
-                if innovation_table.neuron_levels.1.contains(&neuron.id) {
+                if innovation_table.neuron_levels.0.contains(&neuron.id) {
                     assert_eq!(neuron.from_arr.len(), 0, "Input neurons should not have any connectors going from them");
                 }
             }
@@ -109,55 +110,75 @@ impl NeuralNetwork {
         
         // Now we get the layers
         /*
-            layers = 
-            [ List of "parts" of the network
-            [ List of sublayers
-            [],
-            [],
-            [],
-            ]
-            
-            [...],
-            [...],
-            ]
+            layers = [ Components [ Layers [ Sublayers [ Neurons, ... ], ... ], ... ], ... ]
+            See MD for more explanation
         */
             
-        let mut outer_queue: Vec<usize> = Vec::new()
+        let mut component_queue: Vec<usize> = Vec::new();
 
-        for queue in outer_queue {
-            let mut layers: Vec<Vec<usize>> = Vec::new();
-            
-            while queue.len() > 0 {
-                let mut temp_queue: Vec<usize> = Vec::new();
-                
-                for queue_neuron_id in &queue {
-                    let queue_neuron_to_arr = network.neurons[*network.neuron_map.get(queue_neuron_id).unwrap()].to_arr.clone();
-
-                    for connector_id in queue_neuron_to_arr {
-                        let connector_to_id = network.connectors[connector_id].to;
-
-                        temp_queue.push(connector_to_id);
-                        network.neurons[*network.neuron_map.get(&connector_to_id).unwrap()].calls += 1;
-                    }
-                }
-
-                // temp queue should now have all neurons that connect to queue, and all those neurons should have their calls incremented
-                // we can now check if all the neurons in temp have been called the same amount of times as they have froms
-                layers[0].push(queue.clone());
-                queue = Vec::new();
-
-                for neuron_id in temp_queue.clone() {
-                    let calls = network.neurons[*network.neuron_map.get(&neuron_id).unwrap()].calls;
-                    let froms = network.neurons[*network.neuron_map.get(&neuron_id).unwrap()].from_arr.len();
-
-                    if calls == froms {
-                        queue.push(neuron_id);
-                    }
-                }
+        // Fill the component queue with non dependant neurons
+        for neuron in &network.neurons {
+            if neuron.from_arr.len() == 0 {
+                component_queue.push(neuron.id);
             }
         }
 
-        println!("{:?}", layers);
+        let mut layers: Layers = Vec::new();
+
+        // Now we get the layers
+        for component in component_queue {
+            let mut component_sublayers: Vec<Vec<usize>> = Vec::new();
+            let mut queue: Vec<usize> = vec![component];
+
+            while queue.len() > 0 {
+                let mut to_connections: Vec<usize> = Vec::new();
+
+                for neuron in &queue {
+                    to_connections.extend(network.get_neuron(neuron).to_arr.clone());
+                }
+
+                #[cfg(debug_assertions)]
+                {
+                    let mut set = HashSet::new();
+                    for neuron in &to_connections {
+                        assert!(set.insert(*neuron), "Duplicate neuron in to_connections");
+                    }
+                }
+
+                let mut temp_neurons: Vec<usize> = Vec::new();
+
+                // Get all the to neurons in the connections array and increment calls
+                for connection in to_connections {
+                    let to_neuron = network.connectors[connection].to;
+
+                    temp_neurons.push(to_neuron);
+                    network.neurons[*network.neuron_map.get(&to_neuron).unwrap()].calls += 1;
+                }
+
+                component_sublayers.push(queue); // Doesnt eat queue
+                queue = Vec::new();
+
+                for neuron in temp_neurons {
+                    let Neuron { calls, from_arr, .. } = network.get_neuron(&neuron);
+
+                    if *calls == from_arr.len() {
+                        queue.push(neuron);
+                    }
+
+                    #[cfg(debug_assertions)]
+                    {
+                        if *calls > from_arr.len() {
+                            panic!("Calls are greater than from_arr.len");
+                        }
+                    }
+                }
+            }
+
+            layers.push(component_sublayers);
+        }
+
+        network.layers = layers;
+        network
     }
 
     // ! Eats connector
@@ -170,5 +191,9 @@ impl NeuralNetwork {
     fn add_neuron(&mut self, neuron: Neuron) {
         self.neuron_map.insert(neuron.id, self.neurons.len());
         self.neurons.push(neuron);
+    }
+
+    fn get_neuron(&self, id: &usize) -> &Neuron {
+        &self.neurons[*self.neuron_map.get(id).unwrap()]
     }
 }
