@@ -13,6 +13,7 @@ pub struct NeuralNetwork {
     connectors: Vec<Connector>,
     connector_map: HashMap<(usize, usize), usize>,
     layers: Layers,
+    neuron_levels: (Vec<usize>, Vec<usize>),
 }
 
 impl NeuralNetwork {
@@ -23,12 +24,15 @@ impl NeuralNetwork {
             connectors: Vec::new(),
             connector_map: HashMap::new(),
             layers: Vec::new(),
+            neuron_levels: (Vec::new(), Vec::new()),
         }
     }
 
     pub fn init(genome: GenomeType, innovation_table: &InnovationTable) -> NeuralNetwork {
         let mut network = NeuralNetwork::new();
         let mut neurons: Vec<usize> = Vec::new();
+
+        network.neuron_levels = (innovation_table.neuron_levels.0.clone(), innovation_table.neuron_levels.0.clone());
 
         for i in 0..genome.0.len() {
 
@@ -179,6 +183,73 @@ impl NeuralNetwork {
 
         network.layers = layers;
         network
+    }
+
+    fn fire_connector(&mut self, connector: usize) {
+        let Connector { from, to, weight, .. } = self.connectors[connector];
+
+        let mut lower: usize = 0;
+        let mut higher: usize = 0;
+
+        match from > to {
+            true => {
+                lower = *self.neuron_map.get(&to).unwrap();
+                higher = *self.neuron_map.get(&from).unwrap();
+            }
+            false => {
+                lower = *self.neuron_map.get(&from).unwrap();
+                higher = *self.neuron_map.get(&to).unwrap();
+            }
+        }
+
+        let (lower_arr, higher_arr) = self.neurons.split_at_mut(lower + 1);
+
+        let neuron_1 = &mut lower_arr[lower];
+        let neuron_2 = &mut higher_arr[higher - lower - 1];
+
+        neuron_2.value += neuron_1.value * weight;
+    }
+
+    fn prepare_inputs(&mut self, inputs: Vec<f64>) {
+        #[cfg(debug_assertions)]
+        {
+            if inputs.len() != self.neuron_levels.0.len() {
+                panic!("Inputs are not equal to the number of input neurons");
+            }
+        }
+
+        for neuron in &mut self.neurons {
+            neuron.value = 0.0;
+        }
+
+        for (i, input_neuron) in self.neuron_levels.0.iter().enumerate() {
+            self.neurons[*self.neuron_map.get(input_neuron).unwrap()].value = inputs[i];
+        }
+    }
+
+    fn get_order(&self) -> Vec<Vec<usize>> {
+        let mut order: Vec<Vec<usize>> = Vec::new();
+
+        for (i, component) in self.layers.iter().enumerate() {
+            for (j, layer) in component.iter().enumerate() {
+                order.push(Vec::new());
+
+                for (k, neuron) in layer.iter().enumerate() {
+                    let to_arr = self.get_neuron(neuron).to_arr.clone();
+
+                    order[j].extend(to_arr);
+                }
+            }
+        }
+
+        order
+    }
+
+    pub fn run(&mut self, inputs: Vec<f64>) {
+        self.prepare_inputs(inputs);
+        
+        let order = self.get_order();
+        println!("{:?}", order);
     }
 
     // ! Eats connector
