@@ -229,17 +229,9 @@ impl NeuralNetwork {
 
     fn get_order(&self) -> Vec<Vec<usize>> {
         let mut order: Vec<Vec<usize>> = Vec::new();
-
-        for (i, component) in self.layers.iter().enumerate() {
-            for (j, layer) in component.iter().enumerate() {
-                order.push(Vec::new());
-
-                for (k, neuron) in layer.iter().enumerate() {
-                    let to_arr = self.get_neuron(neuron).to_arr.clone();
-
-                    order[j].extend(to_arr);
-                }
-            }
+        
+        for component in &self.layers {
+            
         }
 
         order
@@ -250,6 +242,7 @@ impl NeuralNetwork {
         
         let order = self.get_order();
         println!("{:?}", order);
+        println!("{:?}", self.layers);
     }
 
     // ! Eats connector
