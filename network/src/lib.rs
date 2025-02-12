@@ -188,26 +188,10 @@ impl NeuralNetwork {
     fn fire_connector(&mut self, connector: usize) {
         let Connector { from, to, weight, .. } = self.connectors[connector];
 
-        let mut lower: usize = 0;
-        let mut higher: usize = 0;
+        let neuron_1_value: f64 = self.get_neuron(&from).value;
 
-        match from > to {
-            true => {
-                lower = *self.neuron_map.get(&to).unwrap();
-                higher = *self.neuron_map.get(&from).unwrap();
-            }
-            false => {
-                lower = *self.neuron_map.get(&from).unwrap();
-                higher = *self.neuron_map.get(&to).unwrap();
-            }
-        }
-
-        let (lower_arr, higher_arr) = self.neurons.split_at_mut(lower + 1);
-
-        let neuron_1 = &mut lower_arr[lower];
-        let neuron_2 = &mut higher_arr[higher - lower - 1];
-
-        neuron_2.value += neuron_1.value * weight;
+        let neuron_2 = &mut self.neurons[*self.neuron_map.get(&to).unwrap()];
+        neuron_2.value += neuron_1_value * weight;
     }
 
     fn prepare_inputs(&mut self, inputs: Vec<f64>) {
@@ -229,9 +213,22 @@ impl NeuralNetwork {
 
     fn get_order(&self) -> Vec<Vec<usize>> {
         let mut order: Vec<Vec<usize>> = Vec::new();
-        
+        //[[2, 5, 1, 7], [6, 4], [3]];
+        let mut longest_layer: usize = 0;
+
         for component in &self.layers {
-            
+            if component.len() > longest_layer {
+                longest_layer = component.len();
+            }
+        }
+        
+        for i in 0..longest_layer {
+            order.push(Vec::new());
+            for component in &self.layers {
+                if component.len() > i {
+                    order[i].extend(component[i].clone());
+                }
+            }
         }
 
         order
@@ -241,8 +238,15 @@ impl NeuralNetwork {
         self.prepare_inputs(inputs);
         
         let order = self.get_order();
-        println!("{:?}", order);
-        println!("{:?}", self.layers);
+        for set in order {
+            for neuron_id in set {
+                let neuron = self.get_neuron(&neuron_id);
+
+                for to_connection in neuron.to_arr.clone() {
+                    self.fire_connector(to_connection);
+                }
+            }
+        }
     }
 
     // ! Eats connector
