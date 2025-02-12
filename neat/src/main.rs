@@ -6,7 +6,7 @@ use std::time::Instant;
 fn main() {
     let start = Instant::now();
 
-    let genome = (vec![0, 1, 2, 3, 4], vec![0.9, -0.1, 1.0, 1.0, 1.0], vec![true, true, true, true, true]);
+    let genome = (vec![0, 1, 2, 3, 4], vec![1.0, 1.0, 1.0, 1.0, 1.0], vec![true, true, true, true, true]);
     let mut innovation_table = InnovationTable::new();
 
     innovation_table.add_innovation(2, 3, -1);
@@ -17,9 +17,10 @@ fn main() {
     innovation_table.set_levels(vec![1, 2], vec![3, 4]);
 
     let mut network = NeuralNetwork::init(genome, &innovation_table);
-    network.run(vec![1.0, 1.0]);
 
-    println!("hi");
+    for _ in 0..1000000 {
+        network.run(vec![1.0, 1.0]);
+    }
 
     let duration = start.elapsed();
     println!("Time: {:?}", duration);

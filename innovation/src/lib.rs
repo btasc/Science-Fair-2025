@@ -13,12 +13,6 @@ pub struct InnovationTable {
     pub neuron_levels: (Vec<usize>, Vec<usize>),
 }
 
-pub enum NeuronType {
-    Input,
-    Output,
-    Hidden,
-}
-
 impl InnovationTable {
     pub fn new() -> InnovationTable {
         InnovationTable {
@@ -66,15 +60,5 @@ impl InnovationTable {
 
     pub fn set_levels(&mut self, input_level: Vec<usize>, output_level: Vec<usize>) {
         self.neuron_levels = (input_level, output_level);
-    }
-
-    pub fn get_level(&self, neuron: usize) -> NeuronType {
-        if self.neuron_levels.0.contains(&neuron) {
-            NeuronType::Input
-        } else if self.neuron_levels.1.contains(&neuron) {
-            NeuronType::Output
-        } else {
-            NeuronType::Hidden
-        }
     }
 }

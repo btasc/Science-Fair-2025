@@ -14,6 +14,7 @@ pub struct NeuralNetwork {
     connector_map: HashMap<(usize, usize), usize>,
     layers: Layers,
     neuron_levels: (Vec<usize>, Vec<usize>),
+    order: Vec<Vec<usize>>,
 }
 
 impl NeuralNetwork {
@@ -25,6 +26,7 @@ impl NeuralNetwork {
             connector_map: HashMap::new(),
             layers: Vec::new(),
             neuron_levels: (Vec::new(), Vec::new()),
+            order: Vec::new(),
         }
     }
 
@@ -32,7 +34,7 @@ impl NeuralNetwork {
         let mut network = NeuralNetwork::new();
         let mut neurons: Vec<usize> = Vec::new();
 
-        network.neuron_levels = (innovation_table.neuron_levels.0.clone(), innovation_table.neuron_levels.0.clone());
+        network.neuron_levels = (innovation_table.neuron_levels.0.clone(), innovation_table.neuron_levels.1.clone());
 
         for i in 0..genome.0.len() {
 
@@ -65,7 +67,6 @@ impl NeuralNetwork {
                 id: neuron_id,
                 from_arr: Vec::new(),
                 to_arr: Vec::new(),
-                kind: innovation_table.get_level(neuron_id),
                 value: 0.0,
 
                 // Just for layers
@@ -182,6 +183,7 @@ impl NeuralNetwork {
         }
 
         network.layers = layers;
+        network.order = network.get_order();
         network
     }
 
@@ -212,7 +214,7 @@ impl NeuralNetwork {
     }
 
     fn get_order(&self) -> Vec<Vec<usize>> {
-        let mut order: Vec<Vec<usize>> = Vec::new();
+        let mut neuron_order: Vec<Vec<usize>> = Vec::new();
         //[[2, 5, 1, 7], [6, 4], [3]];
         let mut longest_layer: usize = 0;
 
@@ -223,30 +225,60 @@ impl NeuralNetwork {
         }
         
         for i in 0..longest_layer {
-            order.push(Vec::new());
+            neuron_order.push(Vec::new());
             for component in &self.layers {
                 if component.len() > i {
-                    order[i].extend(component[i].clone());
+                    neuron_order[i].extend(component[i].clone());
                 }
+            }
+        }
+
+        let mut order: Vec<Vec<usize>> = Vec::new();
+
+        for (i, layer) in neuron_order.iter().enumerate() {
+            order.push(Vec::new());
+
+            for neuron in layer {
+                order[i].extend(self.get_neuron(neuron).to_arr.clone());
+            }
+        }
+
+        #[cfg(debug_assertions)]
+        {
+            let mut length = 0;
+
+            for layer in order.iter() {
+                length += layer.len();
+            }
+
+            if length != self.connectors.len() {
+                panic!("Order length does not match connector length");
             }
         }
 
         order
     }
 
-    pub fn run(&mut self, inputs: Vec<f64>) {
+    pub fn run(&mut self, inputs: Vec<f64>) -> Vec<f64> {
         self.prepare_inputs(inputs);
         
-        let order = self.get_order();
-        for set in order {
-            for neuron_id in set {
-                let neuron = self.get_neuron(&neuron_id);
+        let order = self.order.clone();
 
-                for to_connection in neuron.to_arr.clone() {
-                    self.fire_connector(to_connection);
-                }
+        for set in order {
+            for connector in set {
+                self.fire_connector(connector);
             }
         }
+
+        let mut output: Vec<f64> = Vec::new();
+
+        for output_neuron in &self.neuron_levels.1 {
+            output.push(
+                self.get_neuron(output_neuron).value
+            );
+        }
+
+        output
     }
 
     // ! Eats connector
