@@ -11,3 +11,7 @@ cd ..
 cd ./innovation
 cargo clean
 cd ..
+
+cd ./neatcore
+cargo clean
+cd ..

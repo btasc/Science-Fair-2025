@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+pub type RawInnovation = (usize, usize, i32);
+
 pub struct Innovation {
     pub from: usize,
     pub to: usize,
@@ -9,7 +11,7 @@ pub struct Innovation {
 
 pub struct InnovationTable {
     pub innovations: Vec<Innovation>,
-    pub innovation_map: HashMap<(usize, usize, i32), usize>, // (from, to, neuron) -> id. You can then get the innovation from the innovations vec
+    pub innovation_map: HashMap<RawInnovation, usize>, // (from, to, neuron) -> id. You can then get the innovation from the innovations vec
     pub neuron_levels: (Vec<usize>, Vec<usize>),
 }
 
@@ -22,15 +24,15 @@ impl InnovationTable {
         }
     }
 
-    pub fn add_innovation(&mut self, from: usize, to: usize, neuron: i32) {
+    pub fn add_innovation(&mut self, innovation: RawInnovation) {
 
         #[cfg(debug_assertions)]
         {
-            if neuron < -1 {
+            if innovation.2 < -1 {
                 panic!("Neuron id must be -1 or greater");
             }
 
-            match self.get_innovation(from, to, neuron) {
+            match self.get_innovation(innovation) {
                 Some(_) => panic!("Innovation already exists"),
                 None => (),
             }
@@ -38,21 +40,21 @@ impl InnovationTable {
 
         self.innovations.push(
             Innovation {
-                from,
-                to,
+                from: innovation.0,
+                to: innovation.1,
                 id: self.innovations.len(),
-                neuron,
+                neuron: innovation.2,
             }
         );
 
         self.innovation_map.insert(
-            (from, to, neuron),
+            innovation,
             self.innovations.len() - 1
         );
     }
 
-    pub fn get_innovation(&self, from: usize, to: usize, neuron: i32) -> Option<&usize> {
-        match self.innovation_map.get(&(from, to, neuron)) {
+    pub fn get_innovation(&self, innovation: RawInnovation) -> Option<&usize> {
+        match self.innovation_map.get(&innovation) {
             Some(id) => Some(id),
             None => None,
         }
