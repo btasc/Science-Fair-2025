@@ -4,5 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-network = { path = "../network" }
-innovation = { path = "../innovation" }
+neatcore = { path = "../neatcore" }

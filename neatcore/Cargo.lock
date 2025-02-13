@@ -7,13 +7,6 @@ name = "innovation"
 version = "0.1.0"
 
 [[package]]
-name = "neat"
-version = "0.1.0"
-dependencies = [
- "neatcore",
-]
-
-[[package]]
 name = "neatcore"
 version = "0.1.0"
 dependencies = [

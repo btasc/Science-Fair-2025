@@ -17,6 +17,7 @@ pub struct NeuralNetwork {
     order: Vec<Vec<usize>>,
 }
 
+
 impl NeuralNetwork {
     fn new() -> NeuralNetwork {
         NeuralNetwork {
