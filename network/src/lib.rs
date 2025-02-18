@@ -58,6 +58,9 @@ impl NeuralNetwork {
             network.add_connector(connector);
         }
 
+        neurons.push(0);
+        neurons.extend(&innovation_table.neuron_levels.0);
+        neurons.extend(&innovation_table.neuron_levels.1);
 
         // Removes duplicate neurons
         let mut seen_neurons = HashSet::new();
@@ -140,7 +143,7 @@ impl NeuralNetwork {
                 let mut to_connections: Vec<usize> = Vec::new();
 
                 for neuron in &queue {
-                    to_connections.extend(network.get_neuron(neuron).to_arr.clone());
+                    to_connections.extend(&network.get_neuron(neuron).to_arr);
                 }
 
                 #[cfg(debug_assertions)]
@@ -206,7 +209,11 @@ impl NeuralNetwork {
         }
 
         for neuron in &mut self.neurons {
-            neuron.value = 0.0;
+            if neuron.id == 0 {
+                neuron.value = 1.0;
+            } else {
+                neuron.value = 0.0;
+            }
         }
 
         for (i, input_neuron) in self.neuron_levels.0.iter().enumerate() {
@@ -229,7 +236,7 @@ impl NeuralNetwork {
             neuron_order.push(Vec::new());
             for component in &self.layers {
                 if component.len() > i {
-                    neuron_order[i].extend(component[i].clone());
+                    neuron_order[i].extend(&component[i]);
                 }
             }
         }
@@ -240,7 +247,7 @@ impl NeuralNetwork {
             order.push(Vec::new());
 
             for neuron in layer {
-                order[i].extend(self.get_neuron(neuron).to_arr.clone());
+                order[i].extend(&self.get_neuron(neuron).to_arr);
             }
         }
 
