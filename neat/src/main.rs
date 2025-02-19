@@ -17,12 +17,5 @@ fn main() {
     core.init_genome(
         POPULATION,
         (vec![0], vec![1.0], vec![true])
-    );
-
-    for i in 0..POPULATION {
-        core.compare(i, (i + 1) % POPULATION);
-    }
-
-    let time = start.elapsed();
-    println!("Time elapsed: {:?}", time);
+    );    
 }

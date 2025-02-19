@@ -1,7 +1,13 @@
 use network::NeuralNetwork;
 use innovation::{InnovationTable, RawInnovation};
 
+use std::collections::HashSet;
+
 type GenomeType = (Vec<usize>, Vec<f64>, Vec<bool>);
+
+const c1: f64 = 1.0;
+const c2: f64 = 1.0;
+const c3: f64 = 1.0;
 
 pub struct Core {
     gen_arr: Vec<GenomeType>,
@@ -60,56 +66,45 @@ impl Core {
         network.run(inputs)
     }
 
-    pub fn compare(&self, index1: usize, index2: usize) {
+    pub fn compare(&self, index1: usize, index2: usize) -> f64 {
         let genome1 = &self.gen_arr[index1];
         let genome2 = &self.gen_arr[index2];
 
-        let len1 = genome1.0.len();
-        let len2 = genome2.0.len();
+        let mut set1: HashSet<usize> = genome1.0.iter().cloned().collect();
+        let mut set2: HashSet<usize> = genome2.0.iter().cloned().collect();
 
-        let minLength = std::cmp::min(len1, len2);
-
-        let mut marked1: Vec<bool> = vec![false; len1];
-        let mut marked2: Vec<bool> = vec![false; len2];
-
-        let mut matching: Vec<usize> = Vec::new();
-        let mut disjoint: usize = 0;
-        let mut excess: usize = 0;
-
-        // Get all matching
-        for i in 0..minLength {
-            if genome1.0[i] == genome2.0[i] {
-                matching.push(i);
-
-                marked1[i] = true;
-                marked2[i] = true;
+        #[cfg(debug_assertions)]
+        {
+            if set1.len() != genome1.0.len() || set2.len() != genome2.0.len() {
+                panic!("Duplicate gene at neatcore");
             }
         }
 
-        for i in 0..minLength {
-            if marked1[i] {
-                continue;
-            }
+        let mut matching: usize = 0;
+        let mut average_dif: f64 = 0.0;
 
-            for j in 0..minLength {
-                if marked2[i] {
-                    continue;
+        genome1.0
+            .iter()
+            .zip(genome2.0.iter())
+            .enumerate()
+            .for_each(|(i, (&a, &b))| 
+                if a == b { 
+                    matching += 1;
+                    average_dif += (genome1.1[i] - genome2.1[i]).abs();
+                    set1.remove(&a);
+                    set2.remove(&a);
                 }
+            );
+        
+        average_dif /= matching as f64;
 
-                if genome1.0[i] == genome2.0[j] {
-                    disjoint += 1;
+        let disjoint = set1.intersection(&set2).count();
+        let excess = set1.difference(&set2).count();
 
-                    marked1[i] = true;
-                    marked2[j] = true;
-                }
-            }
-        }
-
-        disjoint = marked1.iter().filter(|&&x| !x).count();
-        disjoint += marked2.iter().filter(|&&x| !x).count();
-
-        let average_matching_weight = 0;
-
-
+        (
+            (c1 * excess as f64) + 
+            (c2 * disjoint as f64)
+        ) / (std::cmp::max(genome1.0.len(), genome2.0.len()) as f64) + 
+        (c3 * average_dif as f64)
     }
 }
