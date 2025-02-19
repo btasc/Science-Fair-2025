@@ -3,11 +3,18 @@ use innovation::{InnovationTable, RawInnovation};
 
 use std::collections::HashSet;
 
-type GenomeType = (Vec<usize>, Vec<f64>, Vec<bool>);
+pub type GenomeType = (Vec<usize>, Vec<f64>, Vec<bool>);
 
-const c1: f64 = 1.0;
-const c2: f64 = 1.0;
-const c3: f64 = 1.0;
+const C1: f64 = 1.0;
+const C2: f64 = 1.0;
+const C3: f64 = 1.0;
+
+use rand::Rng;
+
+// Odds for mutation
+const ADD_NODE: f64 = 0.04; // 4%
+const ADD_CONN: f64 = 0.08; // 8%
+const CHNG_WEIGHT: f64 = 0.12; // 12%
 
 pub struct Core {
     gen_arr: Vec<GenomeType>,
@@ -87,12 +94,12 @@ impl Core {
             .iter()
             .zip(genome2.0.iter())
             .enumerate()
-            .for_each(|(i, (&a, &b))| 
+            .for_each(|(i, (a, b))| 
                 if a == b { 
                     matching += 1;
                     average_dif += (genome1.1[i] - genome2.1[i]).abs();
-                    set1.remove(&a);
-                    set2.remove(&a);
+                    set1.remove(a);
+                    set2.remove(a);
                 }
             );
         
@@ -102,9 +109,28 @@ impl Core {
         let excess = set1.difference(&set2).count();
 
         (
-            (c1 * excess as f64) + 
-            (c2 * disjoint as f64)
+            (C1 * excess as f64) + 
+            (C2 * disjoint as f64)
         ) / (std::cmp::max(genome1.0.len(), genome2.0.len()) as f64) + 
-        (c3 * average_dif as f64)
+        (C3 * average_dif as f64)
+    }
+
+    pub fn mutate(&self, index: usize) {
+        let genome = &self.gen_arr[index];
+
+        Self::mutate_net(NeuralNetwork::init(genome.clone(), &self.table));
+    }
+
+    fn mutate_net(network: NeuralNetwork) {
+        let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
+        let random_tup: (f64, f64, f64) = (rng.gen(), rng.gen(), rng.gen());
+    
+        println!("{:?}", random_tup);
+        network.get_random_connection();
+    
+        // Add new node
+        if ADD_CONN > random_tup.0 {
+            
+        }
     }
 }

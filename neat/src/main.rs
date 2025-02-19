@@ -18,4 +18,6 @@ fn main() {
         POPULATION,
         (vec![0], vec![1.0], vec![true])
     );    
+
+    core.mutate(1);
 }

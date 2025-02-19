@@ -3,6 +3,8 @@ mod components;
 use components::*;
 use innovation::*;
 
+use rand::Rng;
+
 use std::collections::{HashMap, HashSet};
 
 type Layers = Vec<Vec<Vec<usize>>>;
@@ -287,6 +289,14 @@ impl NeuralNetwork {
         }
 
         output
+    }
+
+    pub fn get_random_connection(&self) {
+        let mut rng = rand::thread_rng();
+        
+        println!("{:?}", rng.gen_range(0..self.layers.len()));
+        println!("{:?}", self.layers);
+
     }
 
     // ! Eats connector
