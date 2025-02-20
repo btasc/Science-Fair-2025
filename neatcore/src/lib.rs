@@ -1,4 +1,4 @@
-use network::NeuralNetwork;
+use network::{NeuralNetwork, Layers};
 use innovation::{InnovationTable, RawInnovation};
 
 use std::collections::HashSet;
@@ -19,6 +19,7 @@ const CHNG_WEIGHT: f64 = 0.12; // 12%
 pub struct Core {
     gen_arr: Vec<GenomeType>,
     table: InnovationTable,
+    output_set: HashSet<usize>,
 }
 
 impl Core {
@@ -26,6 +27,7 @@ impl Core {
         Core {
             gen_arr: Vec::new(),
             table: InnovationTable::new(),
+            output_set: HashSet::new(),
         }
     }
 
@@ -38,6 +40,9 @@ impl Core {
                 }
             }
         }
+
+        self.output_set.extend(levels.0.iter());
+        self.output_set.extend(levels.1.iter());
 
         self.table.set_levels(levels.0, levels.1);
 
@@ -121,16 +126,65 @@ impl Core {
         Self::mutate_net(NeuralNetwork::init(genome.clone(), &self.table));
     }
 
+    // !!!! Eats network
     fn mutate_net(network: NeuralNetwork) {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
         let random_tup: (f64, f64, f64) = (rng.gen(), rng.gen(), rng.gen());
-    
-        println!("{:?}", random_tup);
-        network.get_random_connection();
-    
-        // Add new node
-        if ADD_CONN > random_tup.0 {
+            
+        // Handles new connection
+        if random_tup.0 < ADD_CONN {
+            let possible_connections = Self::get_all_connections(&network.layers, &network.neuron_levels);
+            let chosen_connection = possible_connections[rng.gen_range(0..possible_connections.len())];
+
             
         }
+    
+        // Add new node
+        
+    }
+
+    fn get_all_connections(layers: &Layers, levels: &(Vec<usize>, Vec<usize>)) -> Vec<(usize, usize)> {
+        let mut possible_connections: Vec<(usize, usize)> = Vec::new();
+    
+        let mut flattend_possibilities: HashSet<&usize> = layers.iter()
+            .flatten()
+            .flatten()
+            .collect();
+
+        for input  in levels.0.iter() {
+            flattend_possibilities.remove(input);
+        }
+
+        flattend_possibilities.remove(&0);
+
+        // Remove mutability since its not needed
+        let flattend_possibilities = flattend_possibilities;
+
+        let output_hash: HashSet<&usize> = levels.1.iter().collect();
+
+        for (component_index, component) in layers.iter().enumerate() {
+            for (layer_index, layer) in component.iter().enumerate() {
+                for from_neuron in layer {
+                    if output_hash.contains(from_neuron) {
+                        continue;
+                    }
+
+                    let mut possible_tos: HashSet<&usize> = flattend_possibilities.clone();
+
+                    for layer in layers[component_index].iter().take(layer_index + 1) {
+                        for banned_neuron in layer {
+                            possible_tos.remove(banned_neuron);
+                        }
+                    }
+
+                    for to_neuron in possible_tos.into_iter() {
+                        possible_connections.push((*from_neuron, *to_neuron));
+                    }
+                }
+            }
+        }
+    
+        possible_connections
     }
 }
+

@@ -3,19 +3,17 @@ mod components;
 use components::*;
 use innovation::*;
 
-use rand::Rng;
-
 use std::collections::{HashMap, HashSet};
 
-type Layers = Vec<Vec<Vec<usize>>>;
+pub type Layers = Vec<Vec<Vec<usize>>>;
 
 pub struct NeuralNetwork {
     neurons: Vec<Neuron>,
     neuron_map: HashMap<usize, usize>,
     connectors: Vec<Connector>,
     connector_map: HashMap<(usize, usize), usize>,
-    layers: Layers,
-    neuron_levels: (Vec<usize>, Vec<usize>),
+    pub layers: Layers,
+    pub neuron_levels: (Vec<usize>, Vec<usize>),
     order: Vec<Vec<usize>>,
 }
 
@@ -289,14 +287,6 @@ impl NeuralNetwork {
         }
 
         output
-    }
-
-    pub fn get_random_connection(&self) {
-        let mut rng = rand::thread_rng();
-        
-        println!("{:?}", rng.gen_range(0..self.layers.len()));
-        println!("{:?}", self.layers);
-
     }
 
     // ! Eats connector
