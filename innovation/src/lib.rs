@@ -1,17 +1,22 @@
-use std::{collections::HashMap, thread::panicking};
+use std::collections::HashMap;
 
-pub type RawInnovation = (usize, usize, bool);
+pub type RawInnovation = (usize, usize, Type);
 
+#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+pub enum Type {
+    Neuron,
+    Connector
+}
 pub struct Innovation {
     pub from: usize,
     pub to: usize,
     pub id: usize,
-    pub neuron: bool, // = false if its a connection
+    pub neuron: Type,
 }
 
 pub struct InnovationTable {
     pub innovations: Vec<Innovation>,
-    pub innovation_map: HashMap<(usize, usize, bool), usize>, // (from, to, neuron) -> id. You can then get the innovation from the innovations vec
+    pub innovation_map: HashMap<RawInnovation, usize>, // (from, to, neuron) -> id. You can then get the innovation from the innovations vec
     pub neuron_levels: (Vec<usize>, Vec<usize>),
     neuron_counter: usize,
 }
@@ -51,7 +56,7 @@ impl InnovationTable {
         );
     }
 
-    pub fn get_innovation(&self, innovation: (usize, usize, bool)) -> Option<&usize> {
+    pub fn get_innovation(&self, innovation: RawInnovation) -> Option<&usize> {
         match self.innovation_map.get(&(innovation.0, innovation.1, innovation.2)) {
             Some(index) => Some(index),
             None => None,

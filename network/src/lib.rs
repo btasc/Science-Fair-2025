@@ -31,7 +31,7 @@ impl NeuralNetwork {
         }
     }
 
-    pub fn init(genome: GenomeType, innovation_table: &InnovationTable) -> NeuralNetwork {
+    pub fn init(genome: &GenomeType, innovation_table: &InnovationTable) -> NeuralNetwork {
         let mut network = NeuralNetwork::new();
         let mut neurons: Vec<usize> = Vec::new();
 

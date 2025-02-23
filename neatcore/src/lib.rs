@@ -1,5 +1,5 @@
 use network::{NeuralNetwork, Layers};
-use innovation::{InnovationTable, RawInnovation};
+use innovation::{InnovationTable, RawInnovation, Type};
 
 use std::collections::HashSet;
 
@@ -72,7 +72,7 @@ impl Core {
             }
         }
 
-        let genome = self.gen_arr[index].clone();
+        let genome = &self.gen_arr[index];
 
         let mut network = NeuralNetwork::init(genome, &self.table);
         network.run(inputs)
@@ -130,7 +130,7 @@ impl Core {
         if random_tup.0 < /*ADD_CONN*/1.0 {
             let chosen_connection: (usize, usize);
 
-            let network = NeuralNetwork::init(genome.clone(), &self.table);
+            let network = NeuralNetwork::init(genome, &self.table);
             let possible_connections = Self::get_all_connections(&network.layers, &network.neuron_levels);
             chosen_connection = possible_connections[rng.gen_range(0..possible_connections.len())];
             
@@ -148,7 +148,7 @@ impl Core {
                 },
                 // Handles if connector does not exist
                 None => {
-                    match self.table.get_innovation((chosen_connection.0, chosen_connection.1, false)) {
+                    match self.table.get_innovation((chosen_connection.0, chosen_connection.1, Type::Connector)) {
                         // Handles if the innovation exists but is not in the genome
                         Some(id) => {
                             (*genome).0.push(*id);
@@ -157,7 +157,7 @@ impl Core {
                         },
                         // Handles if the innovation does not exist
                         None => {
-                            self.table.add_innovation((chosen_connection.0, chosen_connection.1, false));
+                            self.table.add_innovation((chosen_connection.0, chosen_connection.1, Type::Connector));
 
                             (*genome).0.push(self.table.innovations.len() - 1);
                             (*genome).1.push(0.0);
