@@ -2,6 +2,7 @@ pub struct Connector {
     pub from: usize,
     pub to: usize,
     pub weight: f64,
+    pub id: usize,
 }
 
 pub struct Neuron {

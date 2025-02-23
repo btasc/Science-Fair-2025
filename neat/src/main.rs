@@ -9,15 +9,14 @@ fn main() {
 
     core.init_table(
         (vec![1], vec![2]),
-        vec![
-            (0, 2, -1)
-        ],
+        vec![],
     );
 
     core.init_genome(
         POPULATION,
-        (vec![0], vec![1.0], vec![true])
+        (vec![], vec![], vec![])
     );    
 
     core.mutate(1);
+    println!("{:?}", core.gen_arr[1]);
 }

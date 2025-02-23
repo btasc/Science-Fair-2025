@@ -17,7 +17,7 @@ const ADD_CONN: f64 = 0.08; // 8%
 const CHNG_WEIGHT: f64 = 0.12; // 12%
 
 pub struct Core {
-    gen_arr: Vec<GenomeType>,
+    pub gen_arr: Vec<GenomeType>,
     table: InnovationTable,
     output_set: HashSet<usize>,
 }
@@ -120,27 +120,55 @@ impl Core {
         (C3 * average_dif as f64)
     }
 
-    pub fn mutate(&self, index: usize) {
-        let genome = &self.gen_arr[index];
+    pub fn mutate(&mut self, index: usize) {
+        let genome = &mut self.gen_arr[index];
 
-        Self::mutate_net(NeuralNetwork::init(genome.clone(), &self.table));
-    }
-
-    // !!!! Eats network
-    fn mutate_net(network: NeuralNetwork) {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
         let random_tup: (f64, f64, f64) = (rng.gen(), rng.gen(), rng.gen());
             
         // Handles new connection
-        if random_tup.0 < ADD_CONN {
-            let possible_connections = Self::get_all_connections(&network.layers, &network.neuron_levels);
-            let chosen_connection = possible_connections[rng.gen_range(0..possible_connections.len())];
+        if random_tup.0 < /*ADD_CONN*/1.0 {
+            let chosen_connection: (usize, usize);
 
+            let network = NeuralNetwork::init(genome.clone(), &self.table);
+            let possible_connections = Self::get_all_connections(&network.layers, &network.neuron_levels);
+            chosen_connection = possible_connections[rng.gen_range(0..possible_connections.len())];
             
+            match network.connector_map.get(&chosen_connection) {
+                // Handles if the connector exists in the network, meaning all that is required is flipping genome.2[x]
+                Some(id) => { // id = innovation.id
+                    match genome.0.iter().position(|x| x == id) {
+                        Some(index) => {
+                            (*genome).2[index] = !(*genome).2[index]; 
+                        },
+                        None => {
+                            panic!("Cannot find id of connection in genome at neatcore. This should be impossible");
+                        }
+                    }
+                },
+                // Handles if connector does not exist
+                None => {
+                    match self.table.get_innovation((chosen_connection.0, chosen_connection.1, false)) {
+                        // Handles if the innovation exists but is not in the genome
+                        Some(id) => {
+                            (*genome).0.push(*id);
+                            (*genome).1.push(0.0);
+                            (*genome).2.push(true);
+                        },
+                        // Handles if the innovation does not exist
+                        None => {
+                            self.table.add_innovation((chosen_connection.0, chosen_connection.1, false));
+
+                            (*genome).0.push(self.table.innovations.len() - 1);
+                            (*genome).1.push(0.0);
+                            (*genome).2.push(true);
+                        }
+                    }
+                }
+            }
+            
+            println!("{:?}", chosen_connection);
         }
-    
-        // Add new node
-        
     }
 
     fn get_all_connections(layers: &Layers, levels: &(Vec<usize>, Vec<usize>)) -> Vec<(usize, usize)> {

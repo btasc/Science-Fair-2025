@@ -11,7 +11,7 @@ pub struct NeuralNetwork {
     neurons: Vec<Neuron>,
     neuron_map: HashMap<usize, usize>,
     connectors: Vec<Connector>,
-    connector_map: HashMap<(usize, usize), usize>,
+    pub connector_map: HashMap<(usize, usize), usize>,
     pub layers: Layers,
     pub neuron_levels: (Vec<usize>, Vec<usize>),
     order: Vec<Vec<usize>>,
@@ -50,8 +50,9 @@ impl NeuralNetwork {
                 from: innovation.from,
                 to: innovation.to,
                 weight: genome.1[i],
+                id: innovation.id,
             };
-
+            
             neurons.push(connector.from);
             neurons.push(connector.to);
 
@@ -120,7 +121,6 @@ impl NeuralNetwork {
         // Now we get the layers
         /*
             layers = [ Components [ Layers [ Sublayers [ Neurons, ... ], ... ], ... ], ... ]
-            See MD for more explanation
         */
             
         let mut component_queue: Vec<usize> = Vec::new();
@@ -291,7 +291,7 @@ impl NeuralNetwork {
 
     // ! Eats connector
     fn add_connector(&mut self, connector: Connector) {
-        self.connector_map.insert((connector.from, connector.to), self.connectors.len());
+        self.connector_map.insert((connector.from, connector.to), connector.id);
         self.connectors.push(connector);
     }
 
