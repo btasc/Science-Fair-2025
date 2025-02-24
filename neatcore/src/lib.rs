@@ -9,7 +9,7 @@ const C1: f64 = 1.0;
 const C2: f64 = 1.0;
 const C3: f64 = 1.0;
 
-const weight_change_range: (f64, f64) = (0.25, -0.25);
+const WGHT_CHNG_RNG: (f64, f64) = (0.25, -0.25);
 
 use rand::Rng;
 
@@ -25,7 +25,7 @@ pub struct Core {
 }
 
 impl Core {
-    pub fn new() -> Core {
+    fn new() -> Core {
         Core {
             gen_arr: Vec::new(),
             table: InnovationTable::new(),
@@ -33,7 +33,29 @@ impl Core {
         }
     }
 
-    pub fn init_table(&mut self, levels: (Vec<usize>, Vec<usize>), innovations: Vec<RawInnovation>) {
+    pub fn init(population: usize, default_genome: Option<GenomeType>, innovations: Option<Vec<RawInnovation>>, levels: (Vec<usize>, Vec<usize>)) -> Self {
+        let mut core = Core::new();
+
+        match default_genome {
+            Some(genome) => {
+                #[cfg(debug_assertions)]
+                {
+                    if genome.0.len() != genome.1.len() || genome.0.len() != genome.2.len() || genome.1.len() != genome.2.len() {
+                        panic!("genome length mismatch at neatcore");
+                    }
+                }
+                
+                for _ in 0..population {
+                    core.gen_arr.push(genome.clone());
+                }
+            },
+            None => {
+                for _ in 0..population {
+                    core.gen_arr.push((Vec::new(), Vec::new(), Vec::new()));
+                }
+            }
+        }
+
         #[cfg(debug_assertions)]
         {
             for output in &levels.1 {
@@ -43,27 +65,21 @@ impl Core {
             }
         }
 
-        self.output_set.extend(levels.0.iter());
-        self.output_set.extend(levels.1.iter());
+        core.output_set.extend(levels.0.iter());
+        core.output_set.extend(levels.1.iter());
 
-        self.table.set_levels(levels.0, levels.1);
+        core.table.set_levels(levels.0, levels.1);
 
-        for innovation in innovations {
-            self.table.add_innovation(innovation);
-        }
-    }
-
-    pub fn init_genome(&mut self, population: usize, genome: GenomeType) {
-        #[cfg(debug_assertions)]
-        {
-            if genome.0.len() != genome.1.len() || genome.0.len() != genome.2.len() || genome.1.len() != genome.2.len() {
-                panic!("Genome length mismatch at neatcore");
-            }
+        match innovations {
+            Some(innovations) => {
+                for innovation in innovations {
+                    core.table.add_innovation(innovation);
+                }
+            },
+            None => (),
         }
 
-        for _ in 0..population {
-            self.gen_arr.push(genome.clone());
-        }
+        core
     }
 
     pub fn run(&self, index: usize, inputs: Vec<f64>) -> Vec<f64> {
@@ -122,16 +138,18 @@ impl Core {
         (C3 * average_dif as f64)
     }
 
+    
+
     pub fn mutate(&mut self, index: usize) {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
         let random_tup: (f64, f64, f64) = (rng.gen(), rng.gen(), rng.gen());
 
-        if random_tup.0 < 1.0/*ADD_CONN*/ {
+        if random_tup.0 < ADD_CONN {
             let chosen_connector = self.get_random_connector(index);
             self.add_connector(index, chosen_connector);
         }
 
-        if random_tup.1 < 1.0/*ADD_NODE*/ {
+        if random_tup.1 < ADD_NODE {
             let chosen_connector = self.get_random_connector(index);
             let new_neuron = self.table.inc_neuron();
 
@@ -139,12 +157,12 @@ impl Core {
             self.add_connector(index, (new_neuron, chosen_connector.1));
         }
 
-        if random_tup.2 < 1.0/*CHNG_WEIGHT*/ {
+        if random_tup.2 < CHNG_WEIGHT {
             let weights = &mut self.gen_arr[index].1;
             let len = weights.len();
 
             if len != 0 {
-                let change = rng.gen_range(weight_change_range.1..weight_change_range.0);
+                let change = rng.gen_range(WGHT_CHNG_RNG.1..WGHT_CHNG_RNG.0);
                 (*weights)[rng.gen_range(0..len)] += change;
             }
         }
@@ -228,6 +246,19 @@ impl Core {
         }
     
         possible_connections
+    }
+
+    pub fn crossover(&self, index1: usize, index2: usize) -> GenomeType {
+        if index1 == index2 {
+            panic!("Cannot crossover genome with itself at neatcore");
+        }
+
+        let genome1 = &self.gen_arr[index1];
+        let genome2 = &self.gen_arr[index2];
+
+        let new_genome: GenomeType = (Vec::new(), Vec::new(), Vec::new());
+
+        new_genome
     }
 }
 
