@@ -1,7 +1,7 @@
 mod components;
 
 use components::*;
-use innovation::*;
+use innovation::{Innovation, InnovationTable, Type};
 
 use std::collections::{HashMap, HashSet};
 
@@ -45,6 +45,10 @@ impl NeuralNetwork {
             }
 
             let innovation = &innovation_table.innovations[genome.0[i]];
+
+            if innovation.kind == Type::Neuron {
+                continue;
+            }
 
             let connector = Connector {
                 from: innovation.from,

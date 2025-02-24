@@ -9,6 +9,8 @@ const C1: f64 = 1.0;
 const C2: f64 = 1.0;
 const C3: f64 = 1.0;
 
+const weight_change_range: (f64, f64) = (0.25, -0.25);
+
 use rand::Rng;
 
 // Odds for mutation
@@ -121,55 +123,68 @@ impl Core {
     }
 
     pub fn mutate(&mut self, index: usize) {
-        let genome = &mut self.gen_arr[index];
-
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
         let random_tup: (f64, f64, f64) = (rng.gen(), rng.gen(), rng.gen());
-            
-        // Handles new connection
-        if random_tup.0 < /*ADD_CONN*/1.0 {
-            let chosen_connection: (usize, usize);
 
-            let network = NeuralNetwork::init(genome, &self.table);
-            let possible_connections = Self::get_all_connections(&network.layers, &network.neuron_levels);
-            chosen_connection = possible_connections[rng.gen_range(0..possible_connections.len())];
-            
-            match network.connector_map.get(&chosen_connection) {
-                // Handles if the connector exists in the network, meaning all that is required is flipping genome.2[x]
-                Some(id) => { // id = innovation.id
-                    match genome.0.iter().position(|x| x == id) {
-                        Some(index) => {
-                            (*genome).2[index] = !(*genome).2[index]; 
-                        },
-                        None => {
-                            panic!("Cannot find id of connection in genome at neatcore. This should be impossible");
-                        }
-                    }
-                },
-                // Handles if connector does not exist
-                None => {
-                    match self.table.get_innovation((chosen_connection.0, chosen_connection.1, Type::Connector)) {
-                        // Handles if the innovation exists but is not in the genome
-                        Some(id) => {
-                            (*genome).0.push(*id);
-                            (*genome).1.push(0.0);
-                            (*genome).2.push(true);
-                        },
-                        // Handles if the innovation does not exist
-                        None => {
-                            self.table.add_innovation((chosen_connection.0, chosen_connection.1, Type::Connector));
+        if random_tup.0 < 1.0/*ADD_CONN*/ {
+            let chosen_connector = self.get_random_connector(index);
+            self.add_connector(index, chosen_connector);
+        }
 
-                            (*genome).0.push(self.table.innovations.len() - 1);
-                            (*genome).1.push(0.0);
-                            (*genome).2.push(true);
-                        }
-                    }
-                }
+        if random_tup.1 < 1.0/*ADD_NODE*/ {
+            let chosen_connector = self.get_random_connector(index);
+            let new_neuron = self.table.inc_neuron();
+
+            self.add_connector(index, (chosen_connector.0, new_neuron));
+            self.add_connector(index, (new_neuron, chosen_connector.1));
+        }
+
+        if random_tup.2 < 1.0/*CHNG_WEIGHT*/ {
+            let weights = &mut self.gen_arr[index].1;
+            let len = weights.len();
+
+            if len != 0 {
+                let change = rng.gen_range(weight_change_range.1..weight_change_range.0);
+                (*weights)[rng.gen_range(0..len)] += change;
             }
-            
-            println!("{:?}", chosen_connection);
         }
     }
+
+    fn get_random_connector(&self, index: usize) -> (usize, usize) {
+        let genome = &self.gen_arr[index];
+        let network = NeuralNetwork::init(genome, &self.table);
+
+        let all_connections = Self::get_all_connections(&network.layers, &network.neuron_levels);
+
+        let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
+        all_connections[rng.gen_range(0..all_connections.len())]
+    }
+
+    fn add_connector(&mut self, index: usize, connection: (usize, usize)) {
+        let genome = &mut self.gen_arr[index];
+
+        match self.table.get_innovation((connection.0, connection.1, Type::Connector)) {
+            Some(id) => {
+                match genome.0.iter().position(|x| x == id) {
+                    Some(innov_index) => {
+                        (*genome).2[innov_index] = !genome.2[innov_index];
+                    },
+                    None => {
+                        (*genome).0.push(*id);
+                        (*genome).1.push(0.0);
+                        (*genome).2.push(true);
+                    }
+                } 
+            },
+            None => {
+                self.table.add_innovation((connection.0, connection.1, Type::Connector));
+
+                (*genome).0.push(self.table.innovations.len() - 1);
+                (*genome).1.push(0.0);
+                (*genome).2.push(true);
+            }
+        }
+     }
 
     fn get_all_connections(layers: &Layers, levels: &(Vec<usize>, Vec<usize>)) -> Vec<(usize, usize)> {
         let mut possible_connections: Vec<(usize, usize)> = Vec::new();

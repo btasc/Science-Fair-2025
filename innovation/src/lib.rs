@@ -11,7 +11,7 @@ pub struct Innovation {
     pub from: usize,
     pub to: usize,
     pub id: usize,
-    pub neuron: Type,
+    pub kind: Type,
 }
 
 pub struct InnovationTable {
@@ -46,7 +46,7 @@ impl InnovationTable {
                 from: innovation.0,
                 to: innovation.1,
                 id: self.innovations.len(),
-                neuron: innovation.2,
+                kind: innovation.2,
             }
         );
 
@@ -81,5 +81,10 @@ impl InnovationTable {
 
         self.neuron_counter = input_level.len() + output_level.len();
         self.neuron_levels = (input_level, output_level);
+    }
+
+    pub fn inc_neuron(&mut self) -> usize {
+        self.neuron_counter += 1;
+        self.neuron_counter
     }
 }
