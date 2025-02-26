@@ -1,5 +1,5 @@
 use neatcore::Core;
-use network::{NeuralNetwork};
+use network::NeuralNetwork;
 
 const POPULATION: usize = 150;
 
@@ -12,7 +12,9 @@ fn main() {
         fitness_function
     ); 
 
-    core.train();
+    for _ in 0..1000 {
+        core.train();
+    }
 }
 
 fn fitness_function(network: NeuralNetwork) -> f64 {

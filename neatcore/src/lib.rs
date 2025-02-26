@@ -20,20 +20,21 @@ const CHNG_WEIGHT: f64 = 0.12; // 12%
 type GenomeType = (Vec<usize>, Vec<f64>, Vec<bool>);
 
 #[derive(Debug)]
-pub struct Species {
-    pub exemplar: GenomeType,
-    pub members: Vec<usize>,
-    pub stagnant_generations: usize,
+struct Species {
+    exemplar: GenomeType,
+    members: Vec<usize>,
+    stagnant_generations: usize,
+    fitness: f64,
 }
 
 pub struct Core {
     population: usize,
-    pub gen_arr: Vec<GenomeType>,
-    pub fit_arr: Vec<f64>,
+    gen_arr: Vec<GenomeType>,
+    fit_arr: Vec<f64>,
     table: InnovationTable,
     output_set: HashSet<usize>,
     fitness_function: Option<fn(NeuralNetwork) -> f64>,
-    pub species: Vec<Species>,
+    species: Vec<Species>,
 }
 
 impl Species {
@@ -42,6 +43,7 @@ impl Species {
             exemplar,
             members: Vec::new(),
             stagnant_generations: 0,
+            fitness: f64::NAN,
         }
     }
 }
@@ -121,7 +123,7 @@ impl Core {
         core
     }
 
-    pub fn run(&self, index: usize, inputs: Vec<f64>) -> Vec<f64> {
+    fn run(&self, index: usize, inputs: Vec<f64>) -> Vec<f64> {
         #[cfg(debug_assertions)]
         {
             if inputs.len() != self.table.neuron_levels.0.len() {
@@ -135,7 +137,7 @@ impl Core {
         network.run(inputs)
     }
 
-    pub fn compare(genome1: &GenomeType, genome2: &GenomeType) -> f64 {
+    fn compare(genome1: &GenomeType, genome2: &GenomeType) -> f64 {
         let mut set1: HashSet<usize> = HashSet::new();
         let mut set2: HashSet<usize> = HashSet::new();
 
@@ -178,7 +180,7 @@ impl Core {
 
     
 
-    pub fn mutate(&mut self, index: usize) {
+    fn mutate(&mut self, index: usize) {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
         let random_tup: (f64, f64, f64) = (rng.gen(), rng.gen(), rng.gen());
 
@@ -201,7 +203,7 @@ impl Core {
 
             if len != 0 {
                 let change = rng.gen_range(WGHT_CHNG_RNG.1..WGHT_CHNG_RNG.0);
-                (*weights)[rng.gen_range(0..len)] += change;
+                weights[rng.gen_range(0..len)] += change;
             }
         }
     }
@@ -212,7 +214,10 @@ impl Core {
 
         let all_connections = Self::get_all_connections(&network.layers, &network.neuron_levels);
 
+        println!("{:?}", network.layers);
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
+
+        assert_ne!(all_connections.len(), 0, "All connections of a network are equal to 0. This should not be possible as bias neuron and output should always be able to connect");
         all_connections[rng.gen_range(0..all_connections.len())]
     }
 
@@ -223,21 +228,21 @@ impl Core {
             Some(id) => {
                 match genome.0.iter().position(|x| x == id) {
                     Some(innov_index) => {
-                        (*genome).2[innov_index] = !genome.2[innov_index];
+                        genome.2[innov_index] = !genome.2[innov_index];
                     },
                     None => {
-                        (*genome).0.push(*id);
-                        (*genome).1.push(0.0);
-                        (*genome).2.push(true);
+                        genome.0.push(*id);
+                        genome.1.push(0.0);
+                        genome.2.push(true);
                     }
                 } 
             },
             None => {
                 self.table.add_innovation((connection.0, connection.1, Type::Connector));
 
-                (*genome).0.push(self.table.innovations.len() - 1);
-                (*genome).1.push(0.0);
-                (*genome).2.push(true);
+                genome.0.push(self.table.innovations.len() - 1);
+                genome.1.push(0.0);
+                genome.2.push(true);
             }
         }
      }
@@ -270,13 +275,28 @@ impl Core {
 
                     let mut possible_tos: HashSet<&usize> = flattend_possibilities.clone();
 
-                    for layer in layers[component_index].iter().take(layer_index + 1) {
-                        for banned_neuron in layer {
-                            possible_tos.remove(banned_neuron);
+                    /*
+                    Say these are layers
+                    [               V If we choose 2, then we just remove 6 and 0 from possible tos
+                        [[0], [6], [2]]
+                        [[1]],
+                        [[5]]
+                    ]
+
+                    Basically just remove all neurons that are before the chosen one and in the same component + the ones in the same layer
+
+                    component_index = component index so we just take that then go from 0..layer_index and remove those neurons
+                    If all same layer neurons are removed that also fixes neuron n -> neuron n
+                     */
+
+                    for banned_layer_index in 0..=layer_index /*= because its an index*/ {
+                        // This now goes through Component [ [this], [this], [chosen - this], [not this]] which should be correct
+                        for neuron in &component[banned_layer_index] {
+                            possible_tos.remove(neuron);
                         }
                     }
 
-                    for to_neuron in possible_tos.into_iter() {
+                    for to_neuron in possible_tos {
                         possible_connections.push((*from_neuron, *to_neuron));
                     }
                 }
@@ -299,7 +319,7 @@ impl Core {
         }
     }
 
-    pub fn crossover(genome1: &GenomeType, genome2: &GenomeType) -> GenomeType {
+    fn crossover(genome1: &GenomeType, genome2: &GenomeType) -> GenomeType {
         let new_genome: GenomeType = (Vec::new(), Vec::new(), Vec::new());
 
         new_genome
@@ -311,12 +331,21 @@ impl Core {
             self.mutate(i);
         }
 
+        /*
+
+        for genome in &self.gen_arr {
+            let set: HashSet<usize> = genome.0.iter().cloned().collect(); 
+            if set.len() != genome.0.len() {
+                panic!("{:?}", genome.0);
+            }
+        }
+
         // Organize it into species
         'outer: for index in 0..self.population {
             for specie in &mut self.species {
                 let distance = Self::compare(&self.gen_arr[index], &specie.exemplar);
                 if distance < COMPATABILITY_THRESHOLD {
-                    (*specie).members.push(index);
+                    specie.members.push(index);
                     continue 'outer;
                 }
             }
@@ -331,19 +360,18 @@ impl Core {
 
         self.get_all_fitness();
 
+        let mut average_species_fitness: f64 = 0.0;
+
         for specie in &mut self.species {
-            if specie.members.len() == 1 {
-                continue;
-            }
+            specie.fitness = specie.members.iter()
+                .map(|&index| self.fit_arr[index] / specie.members.len() as f64)
+                .sum();
 
-            let mut species_fitness: Vec<f64> = specie.members.iter()
-                .map(|&index| self.fit_arr[index])
-                .collect();
-
-            // Sorts fitness array by highest to lowest
-            species_fitness.sort_by(|a, b| a.partial_cmp(b).unwrap());
-
-            
+            average_species_fitness += specie.fitness;
         }
+
+        let mut network_budget: Vec<usize> = Vec::new();
+
+        */
     }
 }

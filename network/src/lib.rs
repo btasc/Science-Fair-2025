@@ -138,6 +138,12 @@ impl NeuralNetwork {
             }
         }
 
+        println!("NEW NETWORK \n\n");
+        println!("{:?}", component_queue);
+        for connector in &network.connectors {
+            println!("From: {:?}, To: {:?}", connector.from, connector.to);
+        }
+
         let mut layers: Layers = Vec::new();
 
         // Now we get the layers
@@ -152,14 +158,6 @@ impl NeuralNetwork {
                     to_connections.extend(&network.get_neuron(neuron).to_arr);
                 }
 
-                #[cfg(debug_assertions)]
-                {
-                    let mut set = HashSet::new();
-                    for neuron in &to_connections {
-                        assert!(set.insert(*neuron), "Duplicate neuron in to_connections");
-                    }
-                }
-
                 let mut temp_neurons: Vec<usize> = Vec::new();
 
                 // Get all the to neurons in the connections array and increment calls
@@ -172,6 +170,11 @@ impl NeuralNetwork {
 
                 component_sublayers.push(queue); // Doesnt eat queue
                 queue = Vec::new();
+
+                let temp_neurons: Vec<_> = temp_neurons.into_iter()
+                    .collect::<HashSet<_>>()
+                    .into_iter()
+                    .collect();
 
                 for neuron in temp_neurons {
                     let Neuron { calls, from_arr, .. } = network.get_neuron(&neuron);
@@ -254,19 +257,6 @@ impl NeuralNetwork {
 
             for neuron in layer {
                 order[i].extend(&self.get_neuron(neuron).to_arr);
-            }
-        }
-
-        #[cfg(debug_assertions)]
-        {
-            let mut length = 0;
-
-            for layer in order.iter() {
-                length += layer.len();
-            }
-
-            if length != self.connectors.len() {
-                panic!("Order length does not match connector length");
             }
         }
 
