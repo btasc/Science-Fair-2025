@@ -1,7 +1,7 @@
 mod components;
 
 use components::*;
-use innovation::{Innovation, InnovationTable, Type};
+use innovation::{InnovationTable, Type};
 
 use std::collections::{HashMap, HashSet};
 
@@ -36,7 +36,7 @@ impl NeuralNetwork {
         let mut neurons: Vec<usize> = Vec::new();
 
         network.neuron_levels = (innovation_table.neuron_levels.0.clone(), innovation_table.neuron_levels.1.clone());
-
+        
         for i in 0..genome.0.len() {
 
             // If gene is false, it disables it
@@ -45,6 +45,8 @@ impl NeuralNetwork {
             }
 
             let innovation = &innovation_table.innovations[genome.0[i]];
+            // An error here means that theres a gene in a genome that doesnt exist in the innov table
+            // Probably something custom like using gene 14 or something
 
             if innovation.kind == Type::Neuron {
                 continue;
