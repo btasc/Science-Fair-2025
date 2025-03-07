@@ -249,60 +249,40 @@ impl Core {
 
     fn get_all_connections(layers: &Layers, levels: &(Vec<usize>, Vec<usize>)) -> Vec<(usize, usize)> {
         let mut possible_connections: Vec<(usize, usize)> = Vec::new();
-    
-        let mut flattend_possibilities: HashSet<&usize> = layers.iter()
-            .flatten()
-            .flatten()
-            .collect();
 
-        for input  in levels.0.iter() {
-            flattend_possibilities.remove(input);
-        }
+        let input_hash: HashSet<usize> = HashSet::from_iter(levels.0.iter().copied());
+        let output_hash: HashSet<usize> = HashSet::from_iter(levels.1.iter().copied());
 
-        flattend_possibilities.remove(&0);
+        for from_component in layers {
+            for (i, from_layer) in from_component.iter().enumerate() {
+                for from_neuron in from_layer {
 
-        // Remove mutability since its not needed
-        let flattend_possibilities = flattend_possibilities;
-
-        let output_hash: HashSet<&usize> = levels.1.iter().collect();
-
-        for (component_index, component) in layers.iter().enumerate() {
-            for (layer_index, layer) in component.iter().enumerate() {
-                for from_neuron in layer {
+                    // Make sure the outputs cant have things going from them
                     if output_hash.contains(from_neuron) {
                         continue;
                     }
 
-                    let mut possible_tos: HashSet<&usize> = flattend_possibilities.clone();
+                    // Restart the loop for the "to" neuron
+                    for to_component in layers {
+                        // Check if there is a level higher than the "to" neuron in the component
+                        match to_component.get(i + 1 /*i = from_neuron index, so i+1 = things past its index*/) {
+                            Some(compatible_to_component) => {
 
-                    /*
-                    Say these are layers
-                    [               V If we choose 2, then we just remove 6 and 0 from possible tos
-                        [[0], [6], [2]]
-                        [[1]],
-                        [[5]]
-                    ]
-
-                    Basically just remove all neurons that are before the chosen one and in the same component + the ones in the same layer
-
-                    component_index = component index so we just take that then go from 0..layer_index and remove those neurons
-                    If all same layer neurons are removed that also fixes neuron n -> neuron n
-                     */
-
-                    for banned_layer_index in 0..=layer_index /*= because its an index*/ {
-                        // This now goes through Component [ [this], [this], [chosen - this], [not this]] which should be correct
-                        for neuron in &component[banned_layer_index] {
-                            possible_tos.remove(neuron);
+                                // compatable to_layer is just the raw layer, so we have to get only the things at the right index, meaning (i+1)..compatible_to_layer.len()
+                                for to_layer_index in (i+1)..compatible_to_component.len() {
+                                    for to_neuron in compatible_to_component[to_layer_index].iter()  {
+                                        // Make sure the inputs cant have things going to them
+                                    }
+                                }
+                            },
+                            None => (),
                         }
                     }
-
-                    for to_neuron in possible_tos {
-                        possible_connections.push((*from_neuron, *to_neuron));
-                    }
+                    // from_neuron ends
                 }
             }
         }
-    
+
         possible_connections
     }
 
