@@ -126,17 +126,8 @@ impl NeuralNetwork {
             }
         }
 
-        println!("NEW NETWORK \n");
-        for connector in &network.connectors {
-            println!("From: {:?}, To: {:?}", connector.from, connector.to);
-        }
-
-        println!("\nConnections done\nLayers:\n");
-
         network.layers = layer_network(&mut network);
         
-        println!("{:?}", network.layers);
-
         network.layers = network.layers;
         network.order = network.get_order();
         network

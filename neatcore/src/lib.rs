@@ -13,9 +13,9 @@ const WGHT_CHNG_RNG: (f64, f64) = (0.25, -0.25);
 const COMPATABILITY_THRESHOLD: f64 = 1.5;
 
 // Odds for mutation
-const ADD_NODE: f64 = 0.04; // 4%
-const ADD_CONN: f64 = 0.08; // 8%
-const CHNG_WEIGHT: f64 = 0.12; // 12%
+const ADD_NODE: f64 = 1.0;//0.04; // 4%
+const ADD_CONN: f64 = 1.0;//0.08; // 8%
+const CHNG_WEIGHT: f64 = 1.0;//0.12; // 12%
 
 type GenomeType = (Vec<usize>, Vec<f64>, Vec<bool>);
 
@@ -63,8 +63,8 @@ impl Core {
 
     pub fn init(
         population: usize, 
-        default_genome: GenomeType, 
-        innovations: Vec<(usize, usize)>, // No Type becuase innovation isnt in main 
+        default_genome: Option<GenomeType>, 
+        innovations: Option<Vec<(usize, usize)>>, // No Type becuase innovation isnt in main 
         levels: (Vec<usize>, Vec<usize>), 
         fitness_function: fn(NeuralNetwork) -> f64
     ) -> Self {
@@ -72,16 +72,27 @@ impl Core {
 
         core.population = population;
 
-        #[cfg(debug_assertions)]
-        {
-            if default_genome.0.len() != default_genome.1.len() || default_genome.0.len() != default_genome.2.len() || default_genome.1.len() != default_genome.2.len() {
-                panic!("genome length mismatch at neatcore");
+        match default_genome {
+            Some(genome) => {
+                #[cfg(debug_assertions)]
+                {
+                    if genome.0.len() != genome.1.len() || genome.0.len() != genome.2.len() {
+                        panic!("Genome must have equal length vectors at neatcore");
+                    }
+                }
+
+                for _ in 0..population {
+
+                    core.gen_arr.push(genome.clone());
+                    core.fit_arr.push(0.0);
+                }
+            },
+            None => {
+                for _ in 0..population {
+                    core.gen_arr.push((vec![], vec![], vec![]));
+                    core.fit_arr.push(0.0);
+                }
             }
-        }
-        
-        for _ in 0..population {
-            core.gen_arr.push(default_genome.clone());
-            core.fit_arr.push(0.0);
         }
         
         #[cfg(debug_assertions)]
@@ -98,8 +109,13 @@ impl Core {
 
         core.table.set_levels(levels.0, levels.1);
 
-        for innovation in innovations {
-            core.table.add_innovation((innovation.0, innovation.1, Type::Connector));
+        match innovations {
+            Some(innovations) => {
+                for innovation in innovations {
+                    core.table.add_innovation((innovation.0, innovation.1, Type::Connector));
+                }
+            },
+            None => (),
         }
         
         core.fitness_function = Some(fitness_function);
@@ -198,7 +214,6 @@ impl Core {
 
         let all_connections = Self::get_all_connections(&network.layers, &network.neuron_levels);
 
-        println!("{:?}", network.layers);
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
 
         assert_ne!(all_connections.len(), 0, "All connections of a network are equal to 0. This should not be possible as bias neuron and output should always be able to connect");
@@ -234,8 +249,26 @@ impl Core {
     fn get_all_connections(layers: &Layers, levels: &(Vec<usize>, Vec<usize>)) -> Vec<(usize, usize)> {
         let mut possible_connections: Vec<(usize, usize)> = Vec::new();
 
-        let input_hash: HashSet<usize> = HashSet::from_iter(levels.0.iter().copied());
-        let output_hash: HashSet<usize> = HashSet::from_iter(levels.1.iter().copied());
+        let input_hash: HashSet<usize> = levels.0.iter().copied().collect();
+        let output_hash: HashSet<usize> = levels.1.iter().copied().collect();
+
+        for layer in layers {
+            for from_neuron in layer {
+                if output_hash.contains(from_neuron) {
+                    continue;
+                }
+
+                for to_layer in layers {
+                    for to_neuron in to_layer {
+                        if  input_hash.contains(to_neuron) {
+                            continue;
+                        }
+
+                        possible_connections.push((*from_neuron, *to_neuron));
+                    }
+                }
+            }
+        }
         
 
         possible_connections
@@ -262,7 +295,10 @@ impl Core {
 
     pub fn train(&mut self) {
         // mutate population
-        self.run(0, vec![0.0]);
+        for i in 0..10000 {
+            self.mutate(0);
+            println!("{:?}", i);
+        }
 
         /*
 

@@ -27,7 +27,7 @@ pub fn layer_network(network: &mut NeuralNetwork) -> Vec<Vec<usize>> {
             .collect();
 
         // Set of neurons that arent verified to be in the next layer, so temp
-        let temp_neurons = connectors.into_iter()
+        let new_layer = connectors.into_iter()
             .map(|connector_id|{
                 let neuron = network.connectors[connector_id].to;
 
@@ -37,10 +37,16 @@ pub fn layer_network(network: &mut NeuralNetwork) -> Vec<Vec<usize>> {
 
                 neuron
             })
+            .collect::<HashSet<usize>>()
+            .into_iter()
+            .filter(|neuron_id|{
+                let neuron = network.get_neuron(neuron_id);
+                neuron.calls == neuron.to_arr.len()
+            })
             .collect::<Vec<usize>>();
 
-
-
+        layers.push(queue.clone());
+        queue = new_layer;
     }
 
     layers
