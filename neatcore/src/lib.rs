@@ -63,38 +63,27 @@ impl Core {
 
     pub fn init(
         population: usize, 
-        default_genome: Option<GenomeType>, 
-        innovations: Option<Vec<RawInnovation>>, 
+        default_genome: GenomeType, 
+        innovations: Vec<(usize, usize)>, // No Type becuase innovation isnt in main 
         levels: (Vec<usize>, Vec<usize>), 
         fitness_function: fn(NeuralNetwork) -> f64
-
     ) -> Self {
         let mut core = Core::new();
 
         core.population = population;
 
-        match default_genome {
-            Some(genome) => {
-                #[cfg(debug_assertions)]
-                {
-                    if genome.0.len() != genome.1.len() || genome.0.len() != genome.2.len() || genome.1.len() != genome.2.len() {
-                        panic!("genome length mismatch at neatcore");
-                    }
-                }
-                
-                for _ in 0..population {
-                    core.gen_arr.push(genome.clone());
-                    core.fit_arr.push(0.0);
-                }
-            },
-            None => {
-                for _ in 0..population {
-                    core.gen_arr.push((Vec::new(), Vec::new(), Vec::new()));
-                    core.fit_arr.push(0.0);
-                }
+        #[cfg(debug_assertions)]
+        {
+            if default_genome.0.len() != default_genome.1.len() || default_genome.0.len() != default_genome.2.len() || default_genome.1.len() != default_genome.2.len() {
+                panic!("genome length mismatch at neatcore");
             }
         }
-
+        
+        for _ in 0..population {
+            core.gen_arr.push(default_genome.clone());
+            core.fit_arr.push(0.0);
+        }
+        
         #[cfg(debug_assertions)]
         {
             for output in &levels.1 {
@@ -109,15 +98,10 @@ impl Core {
 
         core.table.set_levels(levels.0, levels.1);
 
-        match innovations {
-            Some(innovations) => {
-                for innovation in innovations {
-                    core.table.add_innovation(innovation);
-                }
-            },
-            None => (),
+        for innovation in innovations {
+            core.table.add_innovation((innovation.0, innovation.1, Type::Connector));
         }
-
+        
         core.fitness_function = Some(fitness_function);
 
         core
@@ -252,36 +236,7 @@ impl Core {
 
         let input_hash: HashSet<usize> = HashSet::from_iter(levels.0.iter().copied());
         let output_hash: HashSet<usize> = HashSet::from_iter(levels.1.iter().copied());
-
-        for from_component in layers {
-            for (i, from_layer) in from_component.iter().enumerate() {
-                for from_neuron in from_layer {
-
-                    // Make sure the outputs cant have things going from them
-                    if output_hash.contains(from_neuron) {
-                        continue;
-                    }
-
-                    // Restart the loop for the "to" neuron
-                    for to_component in layers {
-                        // Check if there is a level higher than the "to" neuron in the component
-                        match to_component.get(i + 1 /*i = from_neuron index, so i+1 = things past its index*/) {
-                            Some(compatible_to_component) => {
-
-                                // compatable to_layer is just the raw layer, so we have to get only the things at the right index, meaning (i+1)..compatible_to_layer.len()
-                                for to_layer_index in (i+1)..compatible_to_component.len() {
-                                    for to_neuron in compatible_to_component[to_layer_index].iter()  {
-                                        // Make sure the inputs cant have things going to them
-                                    }
-                                }
-                            },
-                            None => (),
-                        }
-                    }
-                    // from_neuron ends
-                }
-            }
-        }
+        
 
         possible_connections
     }
@@ -307,14 +262,12 @@ impl Core {
 
     pub fn train(&mut self) {
         // mutate population
-        for i in 0..self.population {
-            self.mutate(i);
-        }
+        self.run(0, vec![0.0]);
 
         /*
 
         for genome in &self.gen_arr {
-            let set: HashSet<usize> = genome.0.iter().cloned().collect(); 
+            let set: HashSet<usize> = genome.0.iter().copied().collect(); 
             if set.len() != genome.0.len() {
                 panic!("{:?}", genome.0);
             }

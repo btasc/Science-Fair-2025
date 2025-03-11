@@ -1,11 +1,13 @@
 mod components;
+mod layering;
 
 use components::*;
+use layering::layer_network;
 use innovation::{InnovationTable, Type};
 
 use std::collections::{HashMap, HashSet};
 
-pub type Layers = Vec<Vec<Vec<usize>>>;
+pub type Layers = Vec<Vec<usize>>;
 
 pub struct NeuralNetwork {
     neurons: Vec<Neuron>,
@@ -123,79 +125,19 @@ impl NeuralNetwork {
                 }
             }
         }
-        
-        // Now we get the layers
-        /*
-            layers = [ Components [ Layers [ Sublayers [ Neurons, ... ], ... ], ... ], ... ]
-        */
-            
-        let mut component_queue: Vec<usize> = Vec::new();
 
-        // Fill the component queue with non dependant neurons
-        for neuron in &network.neurons {
-            if neuron.from_arr.len() == 0 {
-                component_queue.push(neuron.id);
-            }
-        }
-
-        println!("NEW NETWORK \n\n");
-        println!("{:?}", component_queue);
+        println!("NEW NETWORK \n");
         for connector in &network.connectors {
             println!("From: {:?}, To: {:?}", connector.from, connector.to);
         }
 
-        let mut layers: Layers = Vec::new();
+        println!("\nConnections done\nLayers:\n");
 
-        // Now we get the layers
-        for component in component_queue {
-            let mut component_sublayers: Vec<Vec<usize>> = Vec::new();
-            let mut queue: Vec<usize> = vec![component];
+        network.layers = layer_network(&mut network);
+        
+        println!("{:?}", network.layers);
 
-            while queue.len() > 0 {
-                let mut to_connections: Vec<usize> = Vec::new();
-
-                for neuron in &queue {
-                    to_connections.extend(&network.get_neuron(neuron).to_arr);
-                }
-
-                let mut temp_neurons: Vec<usize> = Vec::new();
-
-                // Get all the to neurons in the connections array and increment calls
-                for connection in to_connections {
-                    let to_neuron = network.connectors[connection].to;
-
-                    temp_neurons.push(to_neuron);
-                    network.neurons[*network.neuron_map.get(&to_neuron).unwrap()].calls += 1;
-                }
-
-                component_sublayers.push(queue); // Doesnt eat queue
-                queue = Vec::new();
-
-                let temp_neurons: Vec<_> = temp_neurons.into_iter()
-                    .collect::<HashSet<_>>()
-                    .into_iter()
-                    .collect();
-
-                for neuron in temp_neurons {
-                    let Neuron { calls, from_arr, .. } = network.get_neuron(&neuron);
-
-                    if *calls == from_arr.len() {
-                        queue.push(neuron);
-                    }
-
-                    #[cfg(debug_assertions)]
-                    {
-                        if *calls > from_arr.len() {
-                            panic!("Calls are greater than from_arr.len");
-                        }
-                    }
-                }
-            }
-
-            layers.push(component_sublayers);
-        }
-
-        network.layers = layers;
+        network.layers = network.layers;
         network.order = network.get_order();
         network
     }
@@ -230,35 +172,8 @@ impl NeuralNetwork {
         }
     }
 
-    fn get_order(&self) -> Vec<Vec<usize>> {
-        let mut neuron_order: Vec<Vec<usize>> = Vec::new();
-        //[[2, 5, 1, 7], [6, 4], [3]];
-        let mut longest_layer: usize = 0;
-
-        for component in &self.layers {
-            if component.len() > longest_layer {
-                longest_layer = component.len();
-            }
-        }
-        
-        for i in 0..longest_layer {
-            neuron_order.push(Vec::new());
-            for component in &self.layers {
-                if component.len() > i {
-                    neuron_order[i].extend(&component[i]);
-                }
-            }
-        }
-
-        let mut order: Vec<Vec<usize>> = Vec::new();
-
-        for (i, layer) in neuron_order.iter().enumerate() {
-            order.push(Vec::new());
-
-            for neuron in layer {
-                order[i].extend(&self.get_neuron(neuron).to_arr);
-            }
-        }
+    fn get_order(&self) -> Layers {
+        let mut order: Layers = Vec::new();
 
         order
     }
