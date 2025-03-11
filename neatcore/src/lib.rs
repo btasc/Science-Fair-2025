@@ -295,9 +295,8 @@ impl Core {
 
     pub fn train(&mut self) {
         // mutate population
-        for i in 0..10000 {
+        for _ in 0..10000 {
             self.mutate(0);
-            println!("{:?}", i);
         }
 
         /*
