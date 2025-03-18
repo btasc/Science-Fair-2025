@@ -15,12 +15,3 @@ cd ..
 cd ./neatcore
 cargo clean
 cd ..
-
-cd ./ASCII/compiler
-cargo clean
-cd ..
-
-cd ./render
-cargo clean
-cd ..
-cd ..

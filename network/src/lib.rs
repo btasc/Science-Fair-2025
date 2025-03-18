@@ -2,10 +2,14 @@ mod components;
 mod layering;
 
 use components::*;
+
 use layering::layer_network;
 use innovation::{InnovationTable, Type};
+use ascii::ASCII;
 
 use std::collections::{HashMap, HashSet};
+use std::thread;
+use std::time;
 
 pub type Layers = Vec<Vec<usize>>;
 
@@ -206,4 +210,14 @@ impl NeuralNetwork {
     fn get_neuron(&self, id: &usize) -> &Neuron {
         &self.neurons[*self.neuron_map.get(id).unwrap()]
     }
-}
+
+    pub fn render(&self) {
+        let mut ascii = ASCII::new(200, 30, 0);
+
+        ascii.circle(7, (100, 15), 2);
+
+        
+
+        ascii.render();
+    }  
+} 

@@ -295,9 +295,8 @@ impl Core {
 
     pub fn train(&mut self) {
         // mutate population
-        for _ in 0..10000 {
-            self.mutate(0);
-        }
+        let network = NeuralNetwork::init(&self.gen_arr[0], &self.table);
+        network.render();
 
         /*
 

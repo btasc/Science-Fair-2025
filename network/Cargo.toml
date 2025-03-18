@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 innovation = { path = "../innovation" }
+ascii = { path = "../ascii" }
 rand = "0.8"

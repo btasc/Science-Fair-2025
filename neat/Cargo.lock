@@ -3,6 +3,10 @@
 version = 3
 
 [[package]]
+name = "ascii"
+version = "0.1.0"
+
+[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -56,6 +60,7 @@ dependencies = [
 name = "network"
 version = "0.1.0"
 dependencies = [
+ "ascii",
  "innovation",
  "rand",
 ]
