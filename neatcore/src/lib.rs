@@ -1,8 +1,11 @@
 use network::{NeuralNetwork, Layers};
 use innovation::{InnovationTable, RawInnovation, Type};
 
-use std::collections::HashSet;
 use rand::Rng;
+use serde::Serialize;
+
+use std::collections::HashSet;
+
 
 const C1: f64 = 1.0;
 const C2: f64 = 0.5;
@@ -25,6 +28,13 @@ struct Species {
     members: Vec<usize>,
     stagnant_generations: usize,
     fitness: f64,
+}
+
+#[derive(Serialize, Debug)]
+struct JSON_network {
+    nodes: Vec<usize>,
+    layers: Vec<Vec<usize>>,
+    connections: Vec<(usize, usize)>,
 }
 
 pub struct Core {
@@ -64,7 +74,7 @@ impl Core {
     pub fn init(
         population: usize, 
         default_genome: Option<GenomeType>, 
-        innovations: Option<Vec<(usize, usize)>>, // No Type becuase innovation isnt in main 
+        innovations: Option<Vec<(usize, usize)>>, // No Type becuase innovation isnt imported in main 
         levels: (Vec<usize>, Vec<usize>), 
         fitness_function: fn(NeuralNetwork) -> f64
     ) -> Self {
@@ -178,8 +188,6 @@ impl Core {
         (C1 * excess as f64) + (C2 * disjoint as f64) + (C3 * average_dif as f64)
     }
 
-    
-
     fn mutate(&mut self, index: usize) {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
         let random_tup: (f64, f64, f64) = (rng.gen(), rng.gen(), rng.gen());
@@ -252,13 +260,13 @@ impl Core {
         let input_hash: HashSet<usize> = levels.0.iter().copied().collect();
         let output_hash: HashSet<usize> = levels.1.iter().copied().collect();
 
-        for layer in layers {
+        for (i, layer) in layers.iter().enumerate() {
             for from_neuron in layer {
                 if output_hash.contains(from_neuron) {
                     continue;
                 }
 
-                for to_layer in layers {
+                for to_layer in layers[i+1..layers.len()].iter() {
                     for to_neuron in to_layer {
                         if  input_hash.contains(to_neuron) {
                             continue;
@@ -270,7 +278,6 @@ impl Core {
             }
         }
         
-
         possible_connections
     }
 
@@ -293,10 +300,37 @@ impl Core {
         new_genome
     }
 
+    pub fn to_json(&self, index: usize, path: &str) {
+        let network = NeuralNetwork::init(&self.gen_arr[index], &self.table);
+
+        let mut nodes: Vec<usize> = Vec::new();
+        let mut connections: Vec<(usize, usize)> = Vec::new();
+
+        for neuron in network.neurons {
+            nodes.push(neuron.id);
+        }
+
+        for connection in network.connectors {
+            connections.push((connection.from, connection.to));
+        }
+
+        let json_net = JSON_network {
+            nodes,
+            connections,
+            layers: network.layers,
+        };
+
+        let serialized = serde_json::to_string(&json_net).unwrap();
+        std::fs::write(path, serialized).unwrap();
+    }
+
     pub fn train(&mut self) {
         // mutate population
-        let network = NeuralNetwork::init(&self.gen_arr[0], &self.table);
-        network.render();
+        for _ in 0..100 {
+            self.mutate(0);
+        }
+
+        self.to_json(0, "../render/network.json");
 
         /*
 
@@ -341,4 +375,8 @@ impl Core {
 
         */
     }
+}
+
+fn log<T>(var: &T) where T: std::fmt::Debug {
+    println!("{:?}", var);
 }

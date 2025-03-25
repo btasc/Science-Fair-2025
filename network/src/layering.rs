@@ -16,7 +16,7 @@ pub fn layer_network(network: &mut NeuralNetwork) -> Vec<Vec<usize>> {
 
     // Layers now has layer 0 set to inputs
     for neuron in network.neurons.iter() {
-        if neuron.from_arr.is_empty() && !input_hash.contains(&neuron.id) {
+        if neuron.from_arr.is_empty() {
             queue.push(neuron.id);
         }
     }
@@ -41,12 +41,37 @@ pub fn layer_network(network: &mut NeuralNetwork) -> Vec<Vec<usize>> {
             .into_iter()
             .filter(|neuron_id|{
                 let neuron = network.get_neuron(neuron_id);
-                neuron.calls == neuron.to_arr.len()
+            
+                neuron.calls == neuron.from_arr.len()
             })
             .collect::<Vec<usize>>();
 
         layers.push(queue.clone());
         queue = new_layer;
+    }
+
+    layers[1] = layers[1].iter()
+    .filter(|neuron_id| !input_hash.contains(*neuron_id))
+    .cloned()
+    .collect::<Vec<usize>>();
+
+
+    #[cfg(debug_assertions)]
+    {
+        let mut len: usize = 0;
+        for layer in layers.iter() {
+            len += layer.len();
+        }
+
+        if len != network.neurons.len() {
+            println!("\nError");
+
+            for connection in network.connectors.iter() {
+                println!("From: {:?}, To: {:?}", connection.from, connection.to);
+            }
+            
+            panic!("Layering failed at layering. Layers: {:?}", layers);
+        }
     }
 
     layers

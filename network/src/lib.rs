@@ -5,7 +5,6 @@ use components::*;
 
 use layering::layer_network;
 use innovation::{InnovationTable, Type};
-use ascii::ASCII;
 
 use std::collections::{HashMap, HashSet};
 use std::thread;
@@ -14,9 +13,9 @@ use std::time;
 pub type Layers = Vec<Vec<usize>>;
 
 pub struct NeuralNetwork {
-    neurons: Vec<Neuron>,
+    pub neurons: Vec<Neuron>,
     neuron_map: HashMap<usize, usize>,
-    connectors: Vec<Connector>,
+    pub connectors: Vec<Connector>,
     pub connector_map: HashMap<(usize, usize), usize>,
     pub layers: Layers,
     pub neuron_levels: (Vec<usize>, Vec<usize>),
@@ -45,11 +44,6 @@ impl NeuralNetwork {
         
         for i in 0..genome.0.len() {
 
-            // If gene is false, it disables it
-            if !genome.2[i] {
-                continue;
-            }
-
             let innovation = &innovation_table.innovations[genome.0[i]];
             // An error here means that theres a gene in a genome that doesnt exist in the innov table
             // Probably something custom like using gene 14 or something
@@ -58,10 +52,16 @@ impl NeuralNetwork {
                 continue;
             }
 
+            let mut weight = 0.0;
+
+            if genome.2[i] {
+                weight = genome.1[i];
+            }
+
             let connector = Connector {
                 from: innovation.from,
                 to: innovation.to,
-                weight: genome.1[i],
+                weight,
                 id: innovation.id,
             };
             
@@ -209,15 +209,5 @@ impl NeuralNetwork {
 
     fn get_neuron(&self, id: &usize) -> &Neuron {
         &self.neurons[*self.neuron_map.get(id).unwrap()]
-    }
-
-    pub fn render(&self) {
-        let mut ascii = ASCII::new(200, 30, 0);
-
-        ascii.circle(7, (100, 15), 2);
-
-        
-
-        ascii.render();
-    }  
+    } 
 } 

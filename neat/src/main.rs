@@ -7,7 +7,7 @@ fn main() {
     let mut core = Core::init(
         POPULATION, // # of genomes
         None,
-        None, // Must have some values because mutation stuff
+        None,
         (vec![1], vec![2]), // [input ids], [output ids]. Cant be 0 as 0 is bias and is always there
         fitness_function
     ); 
