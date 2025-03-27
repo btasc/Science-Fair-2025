@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 pub type RawInnovation = (usize, usize, Type);
 
-#[derive(Hash, Eq, PartialEq, Clone, Copy)]
+#[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Type {
     Neuron,
     Connector

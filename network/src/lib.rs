@@ -1,7 +1,4 @@
-mod components;
 mod layering;
-
-use components::*;
 
 use layering::layer_network;
 use innovation::{InnovationTable, Type};
@@ -11,6 +8,44 @@ use std::thread;
 use std::time;
 
 pub type Layers = Vec<Vec<usize>>;
+
+pub struct Connector {
+    pub from: usize,
+    pub to: usize,
+    pub weight: f64,
+    pub id: usize,
+}
+
+pub struct Neuron {
+    pub id: usize,
+    pub from_arr: Vec<usize>,
+    pub to_arr: Vec<usize>,
+    value: f64,
+    /*
+    Calls is just for layers
+    its incremented when the neuron is mentioned in the from connection of a connector
+    it can then be check against from_arr.len
+     */
+    pub calls: usize,
+}
+
+#[derive(Clone)]
+pub struct Genome(pub Vec<usize>, pub Vec<f64>, pub Vec<bool>);
+
+impl Genome {
+    pub fn new() -> Self {
+        Self(Vec::new(), Vec::new(), Vec::new())
+    }
+
+    pub fn find_weight(&self, id: usize) -> Option<f64> {
+        let index = self.0.iter().position(|&x| x == id);
+
+        match index {
+            Some(i) => return Some(self.1[i]),
+            None => return None,
+        }
+    }
+}
 
 pub struct NeuralNetwork {
     pub neurons: Vec<Neuron>,
@@ -36,7 +71,7 @@ impl NeuralNetwork {
         }
     }
 
-    pub fn init(genome: &GenomeType, innovation_table: &InnovationTable) -> NeuralNetwork {
+    pub fn init(genome: &Genome, innovation_table: &InnovationTable) -> NeuralNetwork {
         let mut network = NeuralNetwork::new();
         let mut neurons: Vec<usize> = Vec::new();
 

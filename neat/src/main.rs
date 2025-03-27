@@ -1,7 +1,7 @@
 use neatcore::Core;
 use network::NeuralNetwork;
 
-const POPULATION: usize = 1;
+const POPULATION: usize = 2;
 
 fn main() {    
     let mut core = Core::init(

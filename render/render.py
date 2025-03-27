@@ -16,7 +16,7 @@ connections = []
 connection_node_app = {}
 
 x_axis = 0
-inc = 50
+inc = 100
 
 y_spread = list(range(0, len(network['nodes'])))
 

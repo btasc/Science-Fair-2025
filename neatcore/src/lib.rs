@@ -1,4 +1,4 @@
-use network::{NeuralNetwork, Layers};
+use network::{NeuralNetwork, Layers, Genome};
 use innovation::{InnovationTable, RawInnovation, Type};
 
 use rand::Rng;
@@ -13,18 +13,13 @@ const C3: f64 = 0.4;
 
 const WGHT_CHNG_RNG: (f64, f64) = (0.25, -0.25);
 
-const COMPATABILITY_THRESHOLD: f64 = 1.5;
-
 // Odds for mutation
 const ADD_NODE: f64 = 1.0;//0.04; // 4%
 const ADD_CONN: f64 = 1.0;//0.08; // 8%
 const CHNG_WEIGHT: f64 = 1.0;//0.12; // 12%
 
-type GenomeType = (Vec<usize>, Vec<f64>, Vec<bool>);
-
-#[derive(Debug)]
 struct Species {
-    exemplar: GenomeType,
+    exemplar: Genome,
     members: Vec<usize>,
     stagnant_generations: usize,
     fitness: f64,
@@ -39,7 +34,7 @@ struct JSON_network {
 
 pub struct Core {
     population: usize,
-    gen_arr: Vec<GenomeType>,
+    gen_arr: Vec<Genome>,
     fit_arr: Vec<f64>,
     table: InnovationTable,
     output_set: HashSet<usize>,
@@ -48,7 +43,7 @@ pub struct Core {
 }
 
 impl Species {
-    fn init(exemplar: GenomeType,) -> Self {
+    fn init(exemplar: Genome,) -> Self {
         Self {
             exemplar,
             members: Vec::new(),
@@ -73,7 +68,7 @@ impl Core {
 
     pub fn init(
         population: usize, 
-        default_genome: Option<GenomeType>, 
+        default_genome: Option<&Genome>, 
         innovations: Option<Vec<(usize, usize)>>, // No Type becuase innovation isnt imported in main 
         levels: (Vec<usize>, Vec<usize>), 
         fitness_function: fn(NeuralNetwork) -> f64
@@ -93,13 +88,13 @@ impl Core {
 
                 for _ in 0..population {
 
-                    core.gen_arr.push(genome.clone());
+                    core.gen_arr.push((*genome).clone());
                     core.fit_arr.push(0.0);
                 }
             },
             None => {
                 for _ in 0..population {
-                    core.gen_arr.push((vec![], vec![], vec![]));
+                    core.gen_arr.push(Genome::new());
                     core.fit_arr.push(0.0);
                 }
             }
@@ -147,45 +142,45 @@ impl Core {
         network.run(inputs)
     }
 
-    fn compare(genome1: &GenomeType, genome2: &GenomeType) -> f64 {
-        let mut set1: HashSet<usize> = HashSet::new();
-        let mut set2: HashSet<usize> = HashSet::new();
+    fn compare(&self, index1: usize, index2: usize) -> f64 {
+        let (genome1, genome2) = if self.gen_arr[index1].0.len() > self.gen_arr[index2].0.len() {
+            (&self.gen_arr[index1], &self.gen_arr[index2])
+        } else {
+            (&self.gen_arr[index1], &self.gen_arr[index2])
+        };
 
-        match genome1.0.len() > genome2.0.len() {
-            true => {
-                set1.extend(genome1.0.clone());
-                set2.extend(genome2.0.clone());
-            },
-            false => {
-                set2.extend(genome1.0.clone());
-                set1.extend(genome2.0.clone());
-            }
-        }
+        // Genome 1 is the longer one
 
-        let mut matching: usize = 0;
-        let mut average_dif: f64 = 0.0;
-
-        genome1.0
-            .iter()
-            .zip(genome2.0.iter())
-            .enumerate()
-            .for_each(|(i, (a, b))| 
-                if a == b { 
-                    matching += 1;
-                    average_dif += (genome1.1[i] - genome2.1[i]).abs();
-                    set1.remove(a);
-                    set2.remove(a);
-                }
-            );
         
+        let mut matching: usize = 0;
+        let mut disjoint: usize = 0;
+        let mut excess:   usize = 0;
+        
+        let mut weight_sum: f64 = 0.0;
+
+        genome2.0.iter()
+            .for_each(|&id| {
+                match genome1.find_weight(id) {
+                    Some(weight) => {
+                        weight_sum += weight;
+                        matching += 1;
+                    },
+                    None => (),
+                }
+            });
+
+        let mut average_weight_dif = 0.0;
+
         if matching != 0 {
-            average_dif /= matching as f64;
+            average_weight_dif = weight_sum / matching as f64;
         }
 
-        let disjoint = set1.intersection(&set2).count();
-        let excess = set1.difference(&set2).count();
+        let longest_f64 = genome1.0.len() as f64;
 
-        (C1 * excess as f64) + (C2 * disjoint as f64) + (C3 * average_dif as f64)
+        
+        
+
+        (C1 * excess as f64 / longest_f64) + (C2 * disjoint as f64 / longest_f64) + (C3 * average_weight_dif as f64)
     }
 
     fn mutate(&mut self, index: usize) {
@@ -282,7 +277,7 @@ impl Core {
     }
 
     fn get_fitness(&self, index: usize) -> f64 {
-        let genome: &GenomeType = &self.gen_arr[index];
+        let genome: &Genome = &self.gen_arr[index];
         let network = NeuralNetwork::init(genome, &self.table);
 
         (self.fitness_function.unwrap())(network)
@@ -294,8 +289,15 @@ impl Core {
         }
     }
 
-    fn crossover(genome1: &GenomeType, genome2: &GenomeType) -> GenomeType {
-        let new_genome: GenomeType = (Vec::new(), Vec::new(), Vec::new());
+    fn crossover(&self, index1: usize, index2: usize) -> Genome {
+        if index1 > self.population || index2 > self.population {
+            panic!("Cant crossover genome index that is greater than population. Index1: {}, Index2: {}, Population: {}", index1, index2, self.population);
+        }
+
+        let genome1: &Genome = &self.gen_arr[index1];
+        let genome2: &Genome = &self.gen_arr[index2];
+
+        let new_genome: Genome = Genome::new();
 
         new_genome
     }
@@ -326,11 +328,11 @@ impl Core {
 
     pub fn train(&mut self) {
         // mutate population
-        for _ in 0..100 {
+        for i in 0..3 {
             self.mutate(0);
         }
 
-        self.to_json(0, "../render/network.json");
+        //self.to_json(0, "../render/network.json");
 
         /*
 
