@@ -156,23 +156,27 @@ impl Core {
         let mut disjoint: usize = 0;
         let mut excess:   usize = 0;
         
-        let mut weight_sum: f64 = 0.0;
+        let mut weight_dif_sum: f64 = 0.0;
+
+        let mut range: (usize, usize) = ()
 
         genome2.0.iter()
-            .for_each(|&id| {
-                match genome1.find_weight(id) {
-                    Some(weight) => {
-                        weight_sum += weight;
-                        matching += 1;
-                    },
-                    None => (),
-                }
+            .enumerate()
+            .for_each(
+                |(i, &id)| {
+                   match genome1.find_weight(id) {
+                        Some(weight) => {
+                            weight_dif_sum += (weight - genome2.1[i]).abs();
+                            matching += 1;
+                        }
+                        None => (),
+                   }
             });
 
         let mut average_weight_dif = 0.0;
 
         if matching != 0 {
-            average_weight_dif = weight_sum / matching as f64;
+            average_weight_dif = weight_dif_sum / matching as f64;
         }
 
         let longest_f64 = genome1.0.len() as f64;

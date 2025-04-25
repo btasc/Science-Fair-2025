@@ -15,3 +15,7 @@ cd ..
 cd ./neatcore
 cargo clean
 cd ..
+
+cd ./kind
+cargo clean
+cd ..
