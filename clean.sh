@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ./v1
+
 cd ./network
 cargo clean
 cd ..
@@ -16,6 +18,16 @@ cd ./neatcore
 cargo clean
 cd ..
 
-cd ./kind
+cd ..
+
+cd ./v2
+
+cd ./network
 cargo clean
+cd ..
+
+cd ./main
+cargo clean
+cd ..
+
 cd ..

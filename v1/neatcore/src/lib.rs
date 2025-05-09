@@ -158,7 +158,7 @@ impl Core {
         
         let mut weight_dif_sum: f64 = 0.0;
 
-        let mut range: (usize, usize) = ()
+        let mut range: (usize, usize) = (0, 0);
 
         genome2.0.iter()
             .enumerate()
