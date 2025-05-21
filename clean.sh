@@ -20,14 +20,10 @@ cd ..
 
 cd ..
 
-cd ./v2
-
 cd ./network
 cargo clean
 cd ..
 
 cd ./main
 cargo clean
-cd ..
-
 cd ..
