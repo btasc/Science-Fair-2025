@@ -8,9 +8,9 @@ fn main() {
         POPULATION, // # of genomes
         None,
         None,
-        (vec![1], vec![2]), // [input ids], [output ids]. Cant be 0 as 0 is bias and is always there
+        (0, 1), /* # of inputs, # of outputs, (outputs cant be 0) */
         fitness_function
-    ); 
+    );
 
     core.train();
 }

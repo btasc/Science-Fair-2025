@@ -70,7 +70,7 @@ impl Core {
         population: usize, 
         default_genome: Option<&Genome>, 
         innovations: Option<Vec<(usize, usize)>>, // No Type becuase innovation isnt imported in main 
-        levels: (Vec<usize>, Vec<usize>), 
+        levels: (usize, usize), 
         fitness_function: fn(NeuralNetwork) -> f64
     ) -> Self {
         let mut core = Core::new();
@@ -99,20 +99,27 @@ impl Core {
                 }
             }
         }
+
+        if levels.1 == 0 {
+            panic!("Cannot set levels.1 to 0 at neatcore");
+        }
+
+        let level0_range = 1..(levels.0 + 1);
+        let level1_range = (levels.0 + 1)..(levels.1 + 1);
         
         #[cfg(debug_assertions)]
         {
-            for output in &levels.1 {
-                if levels.0.contains(output) {
+            for output in level1_range.clone() {
+                if level0_range.contains(&output) {
                     panic!("Output neuron cannot be in input layer at neatcore");
                 }
             }
         }
 
-        core.output_set.extend(levels.0.iter());
-        core.output_set.extend(levels.1.iter());
+        core.output_set.extend(level0_range.clone());
+        core.output_set.extend(level1_range.clone());
 
-        core.table.set_levels(levels.0, levels.1);
+        core.table.set_levels(level0_range.collect::<Vec<usize>>(), level1_range.collect::<Vec<usize>>());
 
         match innovations {
             Some(innovations) => {
@@ -332,7 +339,7 @@ impl Core {
 
     pub fn train(&mut self) {
         // mutate population
-        for i in 0..3 {
+        for i in 0..300 {
             self.mutate(0);
         }
 
