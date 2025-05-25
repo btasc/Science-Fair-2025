@@ -56,6 +56,7 @@ dependencies = [
  "rand",
  "serde",
  "serde_json",
+ "timer",
 ]
 
 [[package]]
@@ -171,6 +172,10 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "timer"
+version = "0.1.0"
 
 [[package]]
 name = "unicode-ident"

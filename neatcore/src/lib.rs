@@ -1,22 +1,28 @@
 use network::{NeuralNetwork, Layers, Genome};
 use innovation::{InnovationTable, RawInnovation, Type};
+use timer::Timer;
 
 use rand::Rng;
 use serde::Serialize;
 
-use std::collections::HashSet;
+use std::{collections::HashSet};
 
 
-const C1: f64 = 1.0;
-const C2: f64 = 0.5;
-const C3: f64 = 0.4;
+// Compare
+    const C1: f64 = 1.0;
+    const C2: f64 = 0.5;
+    const C3: f64 = 0.5;
 
-const WGHT_CHNG_RNG: (f64, f64) = (0.25, -0.25);
+// Mutation
+    const WGHT_CHNG_RNG: (f64, f64) = (0.25, -0.25);
 
-// Odds for mutation
-const ADD_NODE: f64 = 1.0;//0.04; // 4%
-const ADD_CONN: f64 = 1.0;//0.08; // 8%
-const CHNG_WEIGHT: f64 = 1.0;//0.12; // 12%
+    // Odds
+        const ADD_NODE: f64 = 1.0;//0.04; // 4%
+        const ADD_CONN: f64 = 1.0;//0.08; // 8%
+        const CHNG_WEIGHT: f64 = 1.0;//0.12; // 12%
+
+// Backpropogation
+const LRN_RATE: f64 = 0.01;
 
 struct Species {
     exemplar: Genome,
@@ -38,7 +44,6 @@ pub struct Core {
     fit_arr: Vec<f64>,
     table: InnovationTable,
     output_set: HashSet<usize>,
-    fitness_function: Option<fn(NeuralNetwork) -> f64>,
     species: Vec<Species>,
 }
 
@@ -61,7 +66,6 @@ impl Core {
             fit_arr: Vec::new(),
             table: InnovationTable::new(),
             output_set: HashSet::new(),
-            fitness_function: None,
             species: Vec::new(),
         }
     }
@@ -70,8 +74,7 @@ impl Core {
         population: usize, 
         default_genome: Option<&Genome>, 
         innovations: Option<Vec<(usize, usize)>>, // No Type becuase innovation isnt imported in main 
-        levels: (usize, usize), 
-        fitness_function: fn(NeuralNetwork) -> f64
+        levels: (usize, usize),
     ) -> Self {
         let mut core = Core::new();
 
@@ -105,7 +108,7 @@ impl Core {
         }
 
         let level0_range = 1..(levels.0 + 1);
-        let level1_range = (levels.0 + 1)..(levels.1 + 1);
+        let level1_range = (levels.0 + 1)..(levels.1 + 2);
         
         #[cfg(debug_assertions)]
         {
@@ -129,8 +132,7 @@ impl Core {
             },
             None => (),
         }
-        
-        core.fitness_function = Some(fitness_function);
+    
 
         core
     }
@@ -147,51 +149,6 @@ impl Core {
 
         let mut network = NeuralNetwork::init(genome, &self.table);
         network.run(inputs)
-    }
-
-    fn compare(&self, index1: usize, index2: usize) -> f64 {
-        let (genome1, genome2) = if self.gen_arr[index1].0.len() > self.gen_arr[index2].0.len() {
-            (&self.gen_arr[index1], &self.gen_arr[index2])
-        } else {
-            (&self.gen_arr[index1], &self.gen_arr[index2])
-        };
-
-        // Genome 1 is the longer one
-
-        
-        let mut matching: usize = 0;
-        let mut disjoint: usize = 0;
-        let mut excess:   usize = 0;
-        
-        let mut weight_dif_sum: f64 = 0.0;
-
-        let mut range: (usize, usize) = (0, 0);
-
-        genome2.0.iter()
-            .enumerate()
-            .for_each(
-                |(i, &id)| {
-                   match genome1.find_weight(id) {
-                        Some(weight) => {
-                            weight_dif_sum += (weight - genome2.1[i]).abs();
-                            matching += 1;
-                        }
-                        None => (),
-                   }
-            });
-
-        let mut average_weight_dif = 0.0;
-
-        if matching != 0 {
-            average_weight_dif = weight_dif_sum / matching as f64;
-        }
-
-        let longest_f64 = genome1.0.len() as f64;
-
-        
-        
-
-        (C1 * excess as f64 / longest_f64) + (C2 * disjoint as f64 / longest_f64) + (C3 * average_weight_dif as f64)
     }
 
     fn mutate(&mut self, index: usize) {
@@ -287,32 +244,6 @@ impl Core {
         possible_connections
     }
 
-    fn get_fitness(&self, index: usize) -> f64 {
-        let genome: &Genome = &self.gen_arr[index];
-        let network = NeuralNetwork::init(genome, &self.table);
-
-        (self.fitness_function.unwrap())(network)
-    }
-
-    fn get_all_fitness(&mut self) {
-        for i in 0..self.population {
-            self.fit_arr[i] = self.get_fitness(i);
-        }
-    }
-
-    fn crossover(&self, index1: usize, index2: usize) -> Genome {
-        if index1 > self.population || index2 > self.population {
-            panic!("Cant crossover genome index that is greater than population. Index1: {}, Index2: {}, Population: {}", index1, index2, self.population);
-        }
-
-        let genome1: &Genome = &self.gen_arr[index1];
-        let genome2: &Genome = &self.gen_arr[index2];
-
-        let new_genome: Genome = Genome::new();
-
-        new_genome
-    }
-
     pub fn to_json(&self, index: usize, path: &str) {
         let network = NeuralNetwork::init(&self.gen_arr[index], &self.table);
 
@@ -337,56 +268,36 @@ impl Core {
         std::fs::write(path, serialized).unwrap();
     }
 
+    fn backprop(&mut self, index: usize) {
+        let input = 1.0;
+        let output = self.run(0, vec![input]);
+        
+        let loss = (output[0] - input*2.0).powi(2);
+        
+        let weight: &mut f64 = &mut self.gen_arr[index].1[0]; // Note: &mut T needs to have * to change
+        *weight += 0.1 * loss * input;
+    }
+
     pub fn train(&mut self) {
         // mutate population
-        for i in 0..300 {
-            self.mutate(0);
+        self.table.add_innovation((1, 2, Type::Connector));
+
+        self.gen_arr[0].0 = vec![0];
+        self.gen_arr[0].1 = vec![0.0];
+        self.gen_arr[0].2 = vec![true];
+
+        let mut timer = Timer::new();
+        timer.start();
+
+        for _ in 0..40 {
+            self.backprop(0);
         }
+
+        timer.stop();
+        timer.log();
+
 
         //self.to_json(0, "../render/network.json");
-
-        /*
-
-        for genome in &self.gen_arr {
-            let set: HashSet<usize> = genome.0.iter().copied().collect(); 
-            if set.len() != genome.0.len() {
-                panic!("{:?}", genome.0);
-            }
-        }
-
-        // Organize it into species
-        'outer: for index in 0..self.population {
-            for specie in &mut self.species {
-                let distance = Self::compare(&self.gen_arr[index], &specie.exemplar);
-                if distance < COMPATABILITY_THRESHOLD {
-                    specie.members.push(index);
-                    continue 'outer;
-                }
-            }
-
-            self.species.push(
-                Species::init(self.gen_arr[index].clone())
-            );
-
-            let len = self.species.len();
-            self.species[len-1].members.push(index);
-        }        
-
-        self.get_all_fitness();
-
-        let mut average_species_fitness: f64 = 0.0;
-
-        for specie in &mut self.species {
-            specie.fitness = specie.members.iter()
-                .map(|&index| self.fit_arr[index] / specie.members.len() as f64)
-                .sum();
-
-            average_species_fitness += specie.fitness;
-        }
-
-        let mut network_budget: Vec<usize> = Vec::new();
-
-        */
     }
 }
 

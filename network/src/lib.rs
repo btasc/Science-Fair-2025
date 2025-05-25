@@ -20,7 +20,7 @@ pub struct Neuron {
     pub id: usize,
     pub from_arr: Vec<usize>,
     pub to_arr: Vec<usize>,
-    value: f64,
+    pub value: f64,
     /*
     Calls is just for layers
     its incremented when the neuron is mentioned in the from connection of a connector
@@ -178,6 +178,7 @@ impl NeuralNetwork {
         let neuron_1_value: f64 = self.get_neuron(&from).value;
 
         let neuron_2 = &mut self.neurons[*self.neuron_map.get(&to).unwrap()];
+
         neuron_2.value += neuron_1_value * weight;
     }
 
@@ -205,6 +206,16 @@ impl NeuralNetwork {
     fn get_order(&self) -> Layers {
         let mut order: Layers = Vec::new();
 
+        for layer in &self.layers {
+            let mut layer_order: Vec<usize> = Vec::new();
+
+            for neuron in layer {
+                layer_order.extend(self.neurons[*neuron].to_arr.iter());
+            }
+
+            order.push(layer_order);
+        }
+
         order
     }
 
@@ -218,6 +229,7 @@ impl NeuralNetwork {
                 self.fire_connector(connector);
             }
         }
+
 
         let mut output: Vec<f64> = Vec::new();
 

@@ -8,7 +8,7 @@ pub fn layer_network(network: &mut NeuralNetwork) -> Vec<Vec<usize>> {
     let mut input_hash: HashSet<usize> = network.neuron_levels.0.iter().copied().collect();
     input_hash.insert(0); // Bias is always input
 
-    let input_hash = input_hash;
+    let input_hash = input_hash; // Remove mutability
 
     layers.push(
         input_hash.iter().copied().collect::<Vec<usize>>()

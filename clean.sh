@@ -15,3 +15,7 @@ cd ..
 cd ./neatcore
 cargo clean
 cd ..
+
+cd ./timer
+cargo clean
+cd ..

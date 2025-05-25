@@ -1,20 +1,19 @@
 use neatcore::Core;
 use network::NeuralNetwork;
 
-const POPULATION: usize = 2;
+const POPULATION: usize = 1;
 
 fn main() {    
     let mut core = Core::init(
         POPULATION, // # of genomes
         None,
         None,
-        (0, 1), /* # of inputs, # of outputs, (outputs cant be 0) */
-        fitness_function
+        (1, 1), /* # of inputs, # of outputs, (outputs cant be 0) */
     );
 
     core.train();
 }
 
-fn fitness_function(_network: NeuralNetwork) -> f64 {
-    1.0
+fn log<T>(var: &T) where T: std::fmt::Debug {
+    println!("{:?}", var);
 }
