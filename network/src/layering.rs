@@ -21,6 +21,7 @@ pub fn layer_network(network: &mut NeuralNetwork) -> Vec<Vec<usize>> {
         }
     }
 
+    
     while !queue.is_empty() {
         let connectors: Vec<usize> = queue.iter()
             .flat_map(|neuron_id| network.get_neuron(neuron_id).to_arr.clone())
@@ -54,6 +55,10 @@ pub fn layer_network(network: &mut NeuralNetwork) -> Vec<Vec<usize>> {
     .filter(|neuron_id| !input_hash.contains(*neuron_id))
     .cloned()
     .collect::<Vec<usize>>();
+
+    if layers[1] == [] {
+        layers.remove(1);
+    }
 
 
     #[cfg(debug_assertions)]

@@ -1,5 +1,6 @@
 use neatcore::Core;
-use network::NeuralNetwork;
+use network::*;
+use innovation::*;
 
 const POPULATION: usize = 1;
 
@@ -11,7 +12,7 @@ fn main() {
         (1, 1), /* # of inputs, # of outputs, (outputs cant be 0) */
     );
 
-    core.train();
+    //core.train();
 }
 
 fn log<T>(var: &T) where T: std::fmt::Debug {

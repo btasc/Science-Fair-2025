@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 neatcore = { path = "../neatcore" }
 network = { path = "../network" }
+innovation = { path = "../innovation" }

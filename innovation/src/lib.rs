@@ -31,6 +31,18 @@ impl InnovationTable {
         }
     }
 
+    pub fn init(neuron_levels: (Vec<usize>, Vec<usize>), starting_innovations: Vec<(usize, usize, Type)>) -> InnovationTable {
+        let mut table = InnovationTable::new();
+
+        table.set_levels(neuron_levels.0, neuron_levels.1);
+
+        for raw_innovation in starting_innovations.iter() {
+            table.add_innovation(*raw_innovation);
+        }
+
+        table
+    }
+
     pub fn add_innovation(&mut self, innovation: RawInnovation) {
 
         #[cfg(debug_assertions)]
