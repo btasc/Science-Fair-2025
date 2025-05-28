@@ -268,15 +268,23 @@ impl Core {
         std::fs::write(path, serialized).unwrap();
     }
 
-    fn backprop(&mut self, index: usize) {
-        let input = 1.0;
-        let output = self.run(0, vec![input]);
+    fn backprop(&mut self, index: usize, breadth: usize, range: usize, itterations: usize) {
+        let network = NeuralNetwork::init(&self.gen_arr[index], &self.table);
+
+        let inc = range as f64 / breadth as f64;
+
+        log(&network.layers);
         
-        let loss = (output[0] - input*2.0).powi(2);
-        
-        let weight: &mut f64 = &mut self.gen_arr[index].1[0]; // Note: &mut T needs to have * to change
-        *weight += 0.1 * loss * input;
+        for _ in 0..itterations {
+            for b in (breadth as i32 * -1)..(breadth as i32) {
+                let input = inc * b as f64;
+    
+                
+            }
+        }
     }
+
+    
 
     pub fn train(&mut self) {
         // mutate population
@@ -289,9 +297,7 @@ impl Core {
         let mut timer = Timer::new();
         timer.start();
 
-        for _ in 0..40 {
-            self.backprop(0);
-        }
+        self.backprop(0, 10, 5, 10);
 
         timer.stop();
         timer.log();
